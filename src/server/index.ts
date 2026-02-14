@@ -54,6 +54,56 @@ app.post('/api/login', async (req, res) => {
     }
 });
 
+app.get('/api/pharmacies/search', async (req, res) => {
+    const { q } = req.query;
+
+    if (!q || typeof q !== 'string') {
+        return res.status(400).json({ error: 'Query parameter "q" is required' });
+    }
+
+    try {
+        const searchTerm = `%${q}%`;
+        const result = await db.query<any>(
+            `SELECT code, name, principal_code, type 
+             FROM lab_pbm_senasa.pharmacies 
+             WHERE code::text ILIKE $1 
+                OR name ILIKE $1 
+                OR principal_code::text ILIKE $1 
+                OR type ILIKE $1
+             LIMIT 50`,
+            [searchTerm]
+        );
+        res.json(result);
+    } catch (error) {
+        console.error('Pharmacy search error:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
+app.get('/api/medications/search', async (req, res) => {
+    const { q } = req.query;
+
+    if (!q || typeof q !== 'string') {
+        return res.status(400).json({ error: 'Query parameter "q" is required' });
+    }
+
+    try {
+        const searchTerm = `%${q}%`;
+        const result = await db.query<any>(
+            `SELECT code, name 
+             FROM lab_pbm_senasa.medications 
+             WHERE code::text ILIKE $1 
+                OR name ILIKE $1
+             LIMIT 50`,
+            [searchTerm]
+        );
+        res.json(result);
+    } catch (error) {
+        console.error('Medication search error:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
 app.listen(port, () => {
     console.log(`Server running at http://localhost:${port}`);
 });

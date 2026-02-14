@@ -6,8 +6,11 @@ export interface Medication {
 }
 
 export interface AuthorizationRequest {
+    // Code of the pharmacy where the authorization is requested.
     CodigoFarmacia: string;
+    CodigoSucursal?: string | null;
     ContratoAfiliado: string;
+    // Code of the Prevention and Promotion Program.
     CodigoProgramaPyP: number;
     AutorizacionExterna: string;
     Medicamentos: Medication[];

@@ -60,8 +60,12 @@ export class FetchHttpClient implements HttpClient {
         if (!response.ok) {
             try {
                 const errorBody = await response.json();
-                throw new Error(errorBody.message || `HTTP Error: ${response.status}`);
-            } catch (e) {
+                const errorMessage = errorBody.message || errorBody.ErrorMessage || `HTTP Error: ${response.status}`;
+                const error = new Error(errorMessage);
+                (error as any).body = errorBody;
+                throw error;
+            } catch (e: any) {
+                if (e.body) throw e; // Rethrow if it's our custom error
                 throw new Error(`HTTP Error: ${response.status} ${response.statusText}`);
             }
         }

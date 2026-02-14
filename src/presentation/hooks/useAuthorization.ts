@@ -12,33 +12,38 @@ export const useAuthorization = () => {
 
     const validateAuthorization = async (
         affiliateId: string,
-        medications: Medication[]
+        pharmacy: { code: string; type: string; principal_code: string | null; name: string },
+        medications: Medication[],
+        pypCode: number = 0
     ) => {
         setIsLoading(true);
         setError(null);
         setResponse(null);
 
         try {
-            // Instantiate repositories (In a real app, use DI)
             const httpClient = new FetchHttpClient("/unipago");
-            // Using empty string for baseUrl as it's handled by proxy or not needed for auth repo if only token is returned
-            // Actually AuthRepo needs base URL too, or it might use the one from HttpClient if configured there?
-            // Checking UnipagoAuthRepository, it takes baseUrl in constructor. 
-            // UnipagoAffiliateRepository also takes baseUrl.
-            // We'll pass empty string as the proxy handles /unipago prefix mapping if configured correctly,
-            // or we rely on the HttpClient to have the base URL.
-            // Looking at FetchHttpClient, it prepends its baseUrl.
-            // So if we pass "/unipago" to FetchHttpClient, we don't need it in repo constructors if they append paths.
             const authRepo = new UnipagoAuthRepository(httpClient, "");
             const authRepository: AuthorizationRepository = new UnipagoAuthorizationRepository(httpClient, authRepo, "");
 
-            // Generate a unique external authorization ID
-            const externalAuthId = `NUM_REF_FARMACIA_20414_${Date.now()}`;
+            // Determine CodigoFarmacia and CodigoSucursal based on pharmacy type
+            let codigoFarmacia = pharmacy.code;
+            let codigoSucursal: string | null = null;
+
+            if (pharmacy.type === 'SUCURSAL' && pharmacy.principal_code) {
+                codigoFarmacia = pharmacy.principal_code;
+                codigoSucursal = pharmacy.code;
+            }
+
+            // Generate External Auth ID: NUM_REF_FARMACIA_{CodigoFarmacia}_{NumeroReferencia}
+            const now = new Date();
+            const numRef = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}${String(now.getSeconds()).padStart(2, '0')}${String(now.getMilliseconds()).padStart(3, '0')}`;
+            const externalAuthId = `NUM_REF_FARMACIA_${codigoFarmacia}_${numRef}`;
 
             const request: AuthorizationRequest = {
-                CodigoFarmacia: "20414", // Hardcoded as per requirement
+                CodigoFarmacia: codigoFarmacia,
+                CodigoSucursal: codigoSucursal,
                 ContratoAfiliado: affiliateId,
-                CodigoProgramaPyP: 0,
+                CodigoProgramaPyP: pypCode,
                 AutorizacionExterna: externalAuthId,
                 Medicamentos: medications,
             };
@@ -47,21 +52,62 @@ export const useAuthorization = () => {
             setResponse(result);
 
             if (result.ErrorNumber !== 1000) {
-                setError(result.ErrorMessage || "Error en la validación de la autorización.");
+                // For logic errors (200 OK but ErrorNumber != 1000), we still set response
+                // to allow UI to handle it with the specific code.
+                // We clear generic error since response handles it.
+                setError(null);
             }
 
         } catch (err: any) {
-            console.error(err);
-            setError(err.message || "Ocurrió un error al validar la autorización.");
+            console.error("Validation Error:", err);
+
+            // Check for the specific error structure seen in the screenshot
+            // { "respuesta": { "codigo": 1002, "mensaje": "..." }, "errores": ["..."] }
+            if (err.body && err.body.respuesta && err.body.respuesta.codigo) {
+                const { respuesta, errores } = err.body;
+
+                // Combine main message with list of errors
+                let combinedMessage = respuesta.mensaje || "Error de validación";
+
+                if (Array.isArray(errores) && errores.length > 0) {
+                    combinedMessage += "\n\n" + errores.map((e: string) => `• ${e}`).join("\n");
+                }
+
+                setResponse({
+                    ErrorNumber: respuesta.codigo,
+                    ErrorMessage: combinedMessage,
+                    NumeroAutorizacion: "", // No auth number on error
+                    AutorizacionExterna: "",
+                    // Add other required fields with defaults/nulls if strictly required by interface, 
+                    // but State usually handles partial objects or we cast it. 
+                    // Let's assume the interface is loose enough or we match the shape.
+                } as AuthorizationResponse);
+
+                setError(null);
+            }
+            // Fallback for flat ErrorNumber structure (if API changes or mixed responses)
+            else if (err.body && err.body.ErrorNumber) {
+                setResponse(err.body);
+                setError(null);
+            } else {
+                // Generic fallback
+                setError(err.message || "Ocurrió un error al validar la autorización.");
+            }
         } finally {
             setIsLoading(false);
         }
+    };
+
+    const resetState = () => {
+        setError(null);
+        setResponse(null);
     };
 
     return {
         isLoading,
         error,
         response,
-        validateAuthorization
+        validateAuthorization,
+        resetState
     };
 };

@@ -12,18 +12,19 @@ import { Badge } from "../components/ui/Badge";
 import { AuthorizationPanel } from "../components/authorization/AuthorizationPanel";
 import { useAuthorization } from "../hooks/useAuthorization";
 import type { Medication } from "../../domain/models/Authorization";
+import type { Pharmacy } from "../../domain/models/Pharmacy";
 
 export const HomePage: React.FC = () => {
     const [cedula, setCedula] = useState("");
     const { affiliate, isLoading, error, warning, searchAffiliate } = useAffiliateSearch();
-    const { isLoading: isAuthLoading, error: authError, response: authResponse, validateAuthorization } = useAuthorization();
+    const { isLoading: isAuthLoading, error: authError, response: authResponse, validateAuthorization, resetState } = useAuthorization();
 
     const [isAuthStarted, setIsAuthStarted] = useState(false);
 
-    const handleValidate = (medications: Medication[]) => {
+    const handleValidate = (medications: Medication[], pharmacy: Pharmacy, pypCode: number) => {
         if (!affiliate) return;
         // Use CodigoAfiliado as ContratoAfiliado
-        validateAuthorization(affiliate.CodigoAfiliado.toString(), medications);
+        validateAuthorization(affiliate.CodigoAfiliado.toString(), pharmacy, medications, pypCode);
     };
 
     const handleStartAuthorization = () => {
@@ -198,6 +199,8 @@ export const HomePage: React.FC = () => {
                                 isLoading={isAuthLoading}
                                 error={authError}
                                 response={authResponse}
+                                affiliateId={affiliate.CodigoAfiliado.toString()}
+                                onCloseMessage={resetState}
                             />
                         </div>
                     )}
