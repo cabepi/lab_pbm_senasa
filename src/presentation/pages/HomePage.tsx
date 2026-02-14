@@ -53,10 +53,12 @@ export const HomePage: React.FC = () => {
 
     const [isAuthStarted, setIsAuthStarted] = useState(false);
 
+    const [activeTransactionId, setActiveTransactionId] = useState(() => crypto.randomUUID());
+
     const handleValidate = (medications: Medication[], pharmacy: Pharmacy, pypCode: number) => {
         if (!affiliate) return;
-        const transactionId = crypto.randomUUID(); // Generate unique transaction ID
-        setCurrentTransaction({ medications, pharmacy, pypCode, transactionId });
+        // Use the active transaction ID for this session
+        setCurrentTransaction({ medications, pharmacy, pypCode, transactionId: activeTransactionId });
 
         const affiliateSnapshot = {
             document: affiliate.Cedula,
@@ -67,7 +69,7 @@ export const HomePage: React.FC = () => {
             status: affiliate.EstadoDesc
         };
 
-        validateAuthorization(affiliate.CodigoAfiliado.toString(), pharmacy, medications, pypCode, transactionId, affiliateSnapshot);
+        validateAuthorization(affiliate.CodigoAfiliado.toString(), pharmacy, medications, pypCode, activeTransactionId, affiliateSnapshot);
     };
 
     const handleAuthorize = () => {
@@ -107,6 +109,7 @@ export const HomePage: React.FC = () => {
         if (cedula.trim()) {
             searchAffiliate(cedula.trim());
             setIsAuthStarted(false); // Reset auth state on new search
+            setActiveTransactionId(crypto.randomUUID()); // Reset transaction context on new search
         }
     };
 
