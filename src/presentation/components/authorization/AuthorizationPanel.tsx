@@ -139,8 +139,16 @@ export const AuthorizationPanel: React.FC<AuthorizationPanelProps> = ({
                                             <tr key={index} className="hover:bg-blue-50/40 transition-colors">
                                                 <td className="px-5 py-3 text-sm text-gray-400 font-mono">{index + 1}</td>
                                                 <td className="px-5 py-3">
-                                                    <span className="text-sm font-semibold text-gray-800 bg-gray-100 px-2.5 py-1 rounded-md font-mono">
+                                                    <span className="text-sm font-semibold text-gray-800 bg-gray-100 px-2.5 py-1 rounded-md font-mono flex items-center gap-2 w-fit">
                                                         {med.CodigoMedicamento}
+                                                        {!med.Nombre && (
+                                                            <div className="group relative">
+                                                                <AlertCircle size={14} className="text-yellow-500" />
+                                                                <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-max px-2 py-1 text-xs text-white bg-gray-800 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                                                                    No catalogado
+                                                                </span>
+                                                            </div>
+                                                        )}
                                                     </span>
                                                 </td>
                                                 <td className="px-5 py-3 text-center text-sm text-gray-700 font-medium">{med.Cantidad}</td>

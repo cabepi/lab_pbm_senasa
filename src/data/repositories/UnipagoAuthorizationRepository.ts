@@ -25,12 +25,44 @@ export class UnipagoAuthorizationRepository implements AuthorizationRepository {
                     Authorization: `Bearer ${token}`,
                 }
             );
-            return response;
+            return this.mapResponse(response);
         } catch (error: any) {
-            // If the API returns an error structure within the catch block (depending on HttpClient implementation)
-            // we might need to parse it. Assuming HttpClient throws on non-200, we rethrow or handle here.
             console.error("Error validating authorization:", error);
             throw error;
         }
+    }
+
+    async authorize(request: AuthorizationRequest): Promise<AuthorizationResponse> {
+        const token = await this.authRepo.authenticate();
+
+        try {
+            const response = await this.http.post<any>(
+                `${this.baseUrl}/api/Autorizacion/Autorizar`,
+                request,
+                {
+                    Authorization: `Bearer ${token}`,
+                }
+            );
+            return this.mapResponse(response);
+        } catch (error: any) {
+            console.error("Error authorizing:", error);
+            throw error;
+        }
+    }
+
+    private mapResponse(raw: any): AuthorizationResponse {
+        // If the response follows the { respuesta: { codigo, mensaje }, ... } structure
+        if (raw.respuesta) {
+            return {
+                ErrorNumber: raw.respuesta.codigo,
+                ErrorMessage: raw.respuesta.mensaje,
+                NumeroAutorizacion: raw.NumeroAutorizacion ?? raw.detalle?.CodigoAutorizacion?.toString(),
+                respuesta: raw.respuesta,
+                detalle: raw.detalle
+            };
+        }
+
+        // Return as is if it already matches AuthorizationResponse or has flat structure
+        return raw;
     }
 }

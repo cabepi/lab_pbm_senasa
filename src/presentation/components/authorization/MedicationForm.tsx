@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
-import { Plus, Pill, Search, Loader2, X } from 'lucide-react';
+import { Plus, Pill, Search, Loader2, X, AlertCircle } from 'lucide-react';
 import type { Medication } from '../../../domain/models/Authorization';
 import type { MedicationItem } from '../../../domain/models/MedicationItem';
 import { MedicationItemRepository } from '../../../data/repositories/MedicationItemRepository';
@@ -91,8 +91,22 @@ export const MedicationForm: React.FC<MedicationFormProps> = ({ onAdd }) => {
                     {selectedMed ? (
                         <div className="flex items-center justify-between py-2">
                             <div>
-                                <p className="text-sm font-semibold text-gray-800">{selectedMed.name}</p>
-                                <p className="text-xs text-gray-500">Código: {selectedMed.code}</p>
+                                {selectedMed.name ? (
+                                    <>
+                                        <p className="text-sm font-semibold text-gray-800">{selectedMed.name}</p>
+                                        <p className="text-xs text-gray-500">Código: {selectedMed.code}</p>
+                                    </>
+                                ) : (
+                                    <>
+                                        <p className="text-sm font-bold text-gray-800 font-mono bg-yellow-50 text-yellow-800 px-2 py-0.5 rounded border border-yellow-200 w-fit">
+                                            {selectedMed.code}
+                                        </p>
+                                        <p className="text-xs text-yellow-600 mt-1 flex items-center gap-1">
+                                            <AlertCircle size={12} />
+                                            Medicamento no catalogado
+                                        </p>
+                                    </>
+                                )}
                             </div>
                             <button
                                 type="button"
@@ -111,7 +125,7 @@ export const MedicationForm: React.FC<MedicationFormProps> = ({ onAdd }) => {
                                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value)}
                                 icon={isSearching ? <Loader2 className="animate-spin" size={18} /> : <Search size={18} />}
                             />
-                            {searchResults.length > 0 && (
+                            {searchResults.length > 0 ? (
                                 <div className="absolute z-50 left-0 right-0 mt-1 border rounded-lg overflow-hidden max-h-48 overflow-y-auto shadow-lg bg-white">
                                     <table className="min-w-full divide-y divide-gray-200">
                                         <thead className="bg-gray-50 sticky top-0">
@@ -131,9 +145,38 @@ export const MedicationForm: React.FC<MedicationFormProps> = ({ onAdd }) => {
                                                     <td className="px-4 py-2 text-sm text-gray-600">{med.name}</td>
                                                 </tr>
                                             ))}
+                                            {/* Always allow manual entry if query exists and doesn't match exactly */}
+                                            {searchQuery && !searchResults.some(r => r.code === searchQuery) && (
+                                                <tr
+                                                    onClick={() => handleSelectMedication({ code: searchQuery, name: '' })}
+                                                    className="cursor-pointer hover:bg-yellow-50 transition-colors border-t border-yellow-100"
+                                                >
+                                                    <td className="px-4 py-2 text-sm font-mono font-medium text-yellow-700">{searchQuery}</td>
+                                                    <td className="px-4 py-2 text-sm text-yellow-600 italic">
+                                                        Usar como código manual (No catalogado)
+                                                    </td>
+                                                </tr>
+                                            )}
                                         </tbody>
                                     </table>
                                 </div>
+                            ) : (
+                                searchQuery.length > 0 && !isSearching && (
+                                    <div className="absolute z-50 left-0 right-0 mt-1 border rounded-lg overflow-hidden shadow-lg bg-white p-2">
+                                        <div
+                                            onClick={() => handleSelectMedication({ code: searchQuery, name: '' })}
+                                            className="p-2 cursor-pointer hover:bg-yellow-50 rounded-md transition-colors flex items-center gap-2"
+                                        >
+                                            <div className="bg-yellow-100 p-1 rounded-full text-yellow-600">
+                                                <Plus size={14} />
+                                            </div>
+                                            <div>
+                                                <p className="text-sm font-medium text-gray-800">Usar código: <span className="font-mono text-yellow-700">{searchQuery}</span></p>
+                                                <p className="text-xs text-yellow-600 italic">Medicamento no catalogado</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )
                             )}
                         </>
                     )}

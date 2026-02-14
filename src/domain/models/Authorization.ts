@@ -16,9 +16,35 @@ export interface AuthorizationRequest {
     Medicamentos: Medication[];
 }
 
+export interface AuthorizationMedicationDetail {
+    CodError: number;
+    Mensaje: string;
+    Codigo: number | string;
+    TotalFactura: number;
+    CoberturaBasico: number;
+    CoberturaPlan: number;
+    MontoAutorizado: number;
+    MontoCopago: number;
+}
+
+export interface AuthorizationDetail {
+    CodigoAutorizacion?: number | string;
+    CoberturaBasico: number;
+    CoberturaPlan: number;
+    MontoAutorizado: number;
+    MontoCopago: number;
+    TotalFactura: number;
+    medicamentos: AuthorizationMedicationDetail[];
+}
+
 export interface AuthorizationResponse {
     ErrorNumber: number;
     ErrorMessage: string;
     NumeroAutorizacion?: string;
-    // Add other fields from the response as needed
+    // Structure returned by API
+    respuesta?: {
+        codigo: number;
+        mensaje: string;
+    };
+    detalle?: AuthorizationDetail;
 }

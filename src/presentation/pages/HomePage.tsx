@@ -10,6 +10,7 @@ import { Search, Phone, Smartphone, AlertCircle, CheckCircle } from "lucide-reac
 import { useAffiliateSearch } from "../hooks/useAffiliateSearch";
 import { Badge } from "../components/ui/Badge";
 import { AuthorizationPanel } from "../components/authorization/AuthorizationPanel";
+import { AuthorizationSummaryModal } from "../components/authorization/AuthorizationSummaryModal";
 import { useAuthorization } from "../hooks/useAuthorization";
 import type { Medication } from "../../domain/models/Authorization";
 import type { Pharmacy } from "../../domain/models/Pharmacy";
@@ -17,14 +18,59 @@ import type { Pharmacy } from "../../domain/models/Pharmacy";
 export const HomePage: React.FC = () => {
     const [cedula, setCedula] = useState("");
     const { affiliate, isLoading, error, warning, searchAffiliate } = useAffiliateSearch();
-    const { isLoading: isAuthLoading, error: authError, response: authResponse, validateAuthorization, resetState } = useAuthorization();
+    const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+    const [currentTransaction, setCurrentTransaction] = useState<{
+        medications: Medication[];
+        pharmacy: Pharmacy;
+        pypCode: number;
+    } | null>(null);
+
+    const {
+        isLoading: isAuthLoading,
+        isAuthorizing,
+        error: authError,
+        response: authResponse,
+        authorizedResponse,
+        validateAuthorization,
+        authorize,
+        resetState
+    } = useAuthorization();
+
+    // Effect to open modal when validation is successful (1000)
+    React.useEffect(() => {
+        if (authResponse && authResponse.ErrorNumber === 1000 && !authorizedResponse) {
+            setIsAuthModalOpen(true);
+        }
+    }, [authResponse, authorizedResponse]);
+
+    // Effect to close modal and show success when authorization is successful
+    React.useEffect(() => {
+        if (authorizedResponse && authorizedResponse.ErrorNumber === 1000) {
+            setIsAuthModalOpen(false);
+        }
+    }, [authorizedResponse]);
 
     const [isAuthStarted, setIsAuthStarted] = useState(false);
 
     const handleValidate = (medications: Medication[], pharmacy: Pharmacy, pypCode: number) => {
         if (!affiliate) return;
-        // Use CodigoAfiliado as ContratoAfiliado
+        setCurrentTransaction({ medications, pharmacy, pypCode });
         validateAuthorization(affiliate.CodigoAfiliado.toString(), pharmacy, medications, pypCode);
+    };
+
+    const handleAuthorize = () => {
+        if (!affiliate || !currentTransaction) return;
+        authorize(
+            affiliate.CodigoAfiliado.toString(),
+            currentTransaction.pharmacy,
+            currentTransaction.medications,
+            currentTransaction.pypCode
+        );
+    };
+
+    const handleCloseModal = () => {
+        setIsAuthModalOpen(false);
+        // Optional: clear auth response if needed to reset flow
     };
 
     const handleStartAuthorization = () => {
@@ -56,13 +102,67 @@ export const HomePage: React.FC = () => {
         setCedula(value);
     };
 
+    // Render Success Screen if Authorized
+    if (authorizedResponse && authorizedResponse.ErrorNumber === 1000 && authorizedResponse.detalle) {
+        return (
+            <div className="max-w-4xl mx-auto pt-10 px-4">
+                <Card className="p-8 text-center space-y-6 border-t-4 border-t-green-500 shadow-xl">
+                    <div className="flex justify-center">
+                        <div className="bg-green-100 p-4 rounded-full text-green-600">
+                            <CheckCircle size={48} />
+                        </div>
+                    </div>
+
+                    <h1 className="text-3xl font-bold text-gray-900">¡Autorización Exitosa!</h1>
+                    <p className="text-gray-600 text-lg">La transacción ha sido procesada correctamente.</p>
+
+                    <div className="bg-gray-50 p-6 rounded-xl border border-gray-200 inline-block text-left min-w-[300px] space-y-4">
+                        <div>
+                            <p className="text-sm text-gray-500 uppercase tracking-wider font-semibold">Número de Autorización</p>
+                            <p className="text-4xl font-mono font-bold text-gray-900 tracking-tight">
+                                {authorizedResponse.detalle.CodigoAutorizacion}
+                            </p>
+                        </div>
+                        <div className="border-t pt-4 grid grid-cols-2 gap-4 text-sm">
+                            <div>
+                                <p className="text-gray-500">Total Factura</p>
+                                <p className="font-semibold">${authorizedResponse.detalle.TotalFactura.toFixed(2)}</p>
+                            </div>
+                            <div>
+                                <p className="text-gray-500">Monto Autorizado</p>
+                                <p className="font-semibold text-gray-900">${authorizedResponse.detalle.MontoAutorizado.toFixed(2)}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="pt-6">
+                        <Button onClick={() => window.location.reload()} variant="secondary">
+                            Nueva Consulta
+                        </Button>
+                    </div>
+                </Card>
+            </div>
+        );
+    }
+
     return (
         <div className="max-w-7xl mx-auto space-y-8 pb-12 px-4 sm:px-6 lg:px-8">
+            {/* ... (existing header and search) ... */}
             <PageHeader title="Búsqueda de Afiliados" subtitle="Ingrese la cédula del afiliado para consultar su información en Unipago." />
+
+            {/* Authorization Summary Modal */}
+            <AuthorizationSummaryModal
+                isOpen={isAuthModalOpen}
+                onClose={handleCloseModal}
+                onAuthorize={handleAuthorize}
+                validationResponse={authResponse}
+                isAuthorizing={isAuthorizing}
+            />
 
             <div className="max-w-4xl mx-auto">
                 <Card className="p-6 shadow-md border-t-4 border-t-senasa-secondary">
                     <form onSubmit={handleSearch} className="flex flex-col md:flex-row gap-4 items-end">
+                        {/* ... (existing form content) ... */}
                         <div className="flex-1 w-full">
                             <Input
                                 label="Cédula"
@@ -82,6 +182,7 @@ export const HomePage: React.FC = () => {
                 </Card>
             </div>
 
+            {/* ... (existing warnings and errors) ... */}
             {warning && (
                 <div className="max-w-4xl mx-auto p-4 bg-yellow-50 text-yellow-800 border border-yellow-200 rounded-lg flex items-center gap-2 animate-in fade-in slide-in-from-top-2">
                     <AlertCircle size={20} />
@@ -100,8 +201,8 @@ export const HomePage: React.FC = () => {
 
             {affiliate && (
                 <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-6">
-
-                    {/* Header Status - Centered and constrained */}
+                    {/* ... (existing affiliate details) ... */}
+                    {/* Header Status */}
                     <div className="max-w-4xl mx-auto">
                         <div className={`p-4 rounded-lg flex items-center justify-between shadow-sm border ${affiliate.Estado === 3 ? 'bg-green-50 border-green-200 text-green-800' : 'bg-yellow-50 border-yellow-200 text-yellow-800'}`}>
                             <div className="flex items-center gap-2 font-medium">
@@ -114,7 +215,7 @@ export const HomePage: React.FC = () => {
                         </div>
                     </div>
 
-                    {/* Grid Layout: Row 1 (Info & Contact) */}
+                    {/* Grid Layout: Row 1 */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <Collapsible title="Información Personal" defaultOpen={true}>
                             <dl className="grid grid-cols-1 gap-y-4 text-sm mt-2">
@@ -171,7 +272,7 @@ export const HomePage: React.FC = () => {
                         </Collapsible>
                     </div>
 
-                    {/* Grid Layout: Row 2 (Plans & Programs) */}
+                    {/* Grid Layout: Row 2 */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <Collapsible title="Planes de Medicamentos" badgeCount={affiliate.ListaPlanesMedicamentos?.length} defaultOpen={true}>
                             <PlanList plans={affiliate.ListaPlanesMedicamentos} />
@@ -182,7 +283,6 @@ export const HomePage: React.FC = () => {
                         </Collapsible>
                     </div>
 
-                    {/* Authorization Action */}
                     {!isAuthStarted && (
                         <div className="flex justify-center pt-8 pb-4">
                             <Button size="lg" onClick={handleStartAuthorization} className="px-8 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all">
@@ -191,7 +291,6 @@ export const HomePage: React.FC = () => {
                         </div>
                     )}
 
-                    {/* Authorization Panel */}
                     {isAuthStarted && (
                         <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
                             <AuthorizationPanel
