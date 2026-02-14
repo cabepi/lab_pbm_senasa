@@ -23,6 +23,7 @@ export const HomePage: React.FC = () => {
         medications: Medication[];
         pharmacy: Pharmacy;
         pypCode: number;
+        transactionId: string;
     } | null>(null);
 
     const {
@@ -54,17 +55,41 @@ export const HomePage: React.FC = () => {
 
     const handleValidate = (medications: Medication[], pharmacy: Pharmacy, pypCode: number) => {
         if (!affiliate) return;
-        setCurrentTransaction({ medications, pharmacy, pypCode });
-        validateAuthorization(affiliate.CodigoAfiliado.toString(), pharmacy, medications, pypCode);
+        const transactionId = crypto.randomUUID(); // Generate unique transaction ID
+        setCurrentTransaction({ medications, pharmacy, pypCode, transactionId });
+
+        const affiliateSnapshot = {
+            document: affiliate.Cedula,
+            nss: affiliate.Nss,
+            first_name: affiliate.Nombres,
+            last_name: affiliate.Apellidos,
+            regimen: affiliate.Regimen,
+            status: affiliate.EstadoDesc
+        };
+
+        validateAuthorization(affiliate.CodigoAfiliado.toString(), pharmacy, medications, pypCode, transactionId, affiliateSnapshot);
     };
 
     const handleAuthorize = () => {
         if (!affiliate || !currentTransaction) return;
+
+        const affiliateSnapshot = {
+            document: affiliate.Cedula,
+            nss: affiliate.Nss,
+            first_name: affiliate.Nombres,
+            last_name: affiliate.Apellidos,
+            regimen: affiliate.Regimen,
+            status: affiliate.EstadoDesc
+        };
+
         authorize(
             affiliate.CodigoAfiliado.toString(),
             currentTransaction.pharmacy,
             currentTransaction.medications,
-            currentTransaction.pypCode
+            currentTransaction.pypCode,
+            currentTransaction.transactionId,
+            undefined, // externalAuthId (optional)
+            affiliateSnapshot
         );
     };
 

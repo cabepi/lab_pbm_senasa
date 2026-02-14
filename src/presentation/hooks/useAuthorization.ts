@@ -1,14 +1,19 @@
 import { useState } from 'react';
+import { useAuth } from '../../context/AuthContext';
 import type { AuthorizationRequest, AuthorizationResponse, Medication } from '../../domain/models/Authorization';
 import type { AuthorizationRepository } from '../../domain/repositories/AuthorizationRepository';
 import { UnipagoAuthorizationRepository } from '../../data/repositories/UnipagoAuthorizationRepository';
 import { UnipagoAuthRepository } from '../../data/repositories/UnipagoAuthRepository';
 import { FetchHttpClient } from '../../data/infrastructure/FetchHttpClient';
+import { HttpTraceabilityRepository } from '../../data/repositories/HttpTraceabilityRepository';
+import type { TraceabilityRepository } from '../../domain/repositories/TraceabilityRepository';
+import type { AffiliateSnapshot, TransactionTrace } from '../../domain/models/Traceability';
 
 export const useAuthorization = () => {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [response, setResponse] = useState<AuthorizationResponse | null>(null);
+    const { user } = useAuth();
 
     const [isAuthorizing, setIsAuthorizing] = useState(false);
     const [authorizedResponse, setAuthorizedResponse] = useState<AuthorizationResponse | null>(null);
@@ -17,9 +22,16 @@ export const useAuthorization = () => {
         affiliateId: string,
         pharmacy: { code: string; type: string; principal_code: string | null; name: string },
         medications: Medication[],
-        pypCode: number = 0
+        pypCode: number = 0,
+        transactionId: string, // Transaction ID for traceability
+        affiliateData?: AffiliateSnapshot // Require affiliate data for trace
     ) => {
-        // ... (existing validate logic) ...
+        const now = new Date();
+        let traceResult: AuthorizationResponse | null = null;
+        let traceError: any = null;
+        let request: AuthorizationRequest | null = null;
+        let externalAuthId: string | null = null;
+
         setIsLoading(true);
         setError(null);
         setResponse(null);
@@ -40,11 +52,10 @@ export const useAuthorization = () => {
             }
 
             // Generate External Auth ID: NUM_REF_FARMACIA_{CodigoFarmacia}_{NumeroReferencia}
-            const now = new Date();
             const numRef = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}${String(now.getSeconds()).padStart(2, '0')}${String(now.getMilliseconds()).padStart(3, '0')}`;
-            const externalAuthId = `NUM_REF_FARMACIA_${codigoFarmacia}_${numRef}`;
+            externalAuthId = `NUM_REF_FARMACIA_${codigoFarmacia}_${numRef}`;
 
-            const request: AuthorizationRequest = {
+            request = {
                 CodigoFarmacia: codigoFarmacia,
                 CodigoSucursal: codigoSucursal,
                 ContratoAfiliado: affiliateId,
@@ -54,6 +65,7 @@ export const useAuthorization = () => {
             };
 
             const result = await authRepository.validate(request);
+            traceResult = result;
             setResponse(result);
 
             if (result.ErrorNumber !== 1000) {
@@ -61,9 +73,54 @@ export const useAuthorization = () => {
             }
 
         } catch (err: any) {
+            traceError = err;
             handleError(err);
         } finally {
             setIsLoading(false);
+
+            // Async Traceability Log
+            if (affiliateData) {
+                const endTime = new Date();
+                const duration = endTime.getTime() - now.getTime();
+
+                try {
+                    // Use empty base URL to hit local proxy /api/traces/register
+                    const traceRepo: TraceabilityRepository = new HttpTraceabilityRepository(new FetchHttpClient(""));
+
+                    const trace: TransactionTrace = {
+                        created_at: now,
+                        transaction_id: transactionId,
+                        user_email: user?.email || "unknown",
+                        // user_ip handled by backend
+                        action_type: 'VALIDATION',
+                        response_code: traceResult?.ErrorNumber || (traceError ? 500 : 0),
+                        duration_ms: duration,
+                        pharmacy_code: pharmacy.principal_code || pharmacy.code,
+                        branch_code: pharmacy.type === 'SUCURSAL' ? pharmacy.code : undefined,
+                        affiliate: {
+                            document: affiliateData.document,
+                            nss: affiliateData.nss,
+                            first_name: affiliateData.first_name,
+                            last_name: affiliateData.last_name,
+                            regimen: affiliateData.regimen,
+                            status: affiliateData.status
+                        },
+                        payload_input: request || {
+                            CodigoFarmacia: pharmacy.principal_code || pharmacy.code,
+                            CodigoSucursal: pharmacy.type === 'SUCURSAL' ? pharmacy.code : null,
+                            ContratoAfiliado: affiliateId,
+                            CodigoProgramaPyP: pypCode,
+                            AutorizacionExterna: externalAuthId || "", // We miss the exact ID if we don't lift 'request' properly. 
+                            Medicamentos: medications
+                        },
+                        payload_output: traceResult || traceError || {}
+                    };
+
+                    await traceRepo.save(trace);
+                } catch (e) {
+                    console.error("Trace error during validation:", e);
+                }
+            }
         }
     };
 
@@ -72,13 +129,15 @@ export const useAuthorization = () => {
         pharmacy: { code: string; type: string; principal_code: string | null; name: string },
         medications: Medication[],
         pypCode: number = 0,
-        externalAuthId?: string // Optional, but usually strictly required to match validate? 
-        // Actually, user said "asignaremos los mismos valores que tenemos en el servicio de validar".
-        // It's safer to regenerate or reuse the one from validate if we stored it?
-        // For now, let's regenerate it or accept it. 
-        // Given the quick succession, regenerating might be fine or passing it from the modal if available.
-        // Let's regenerate for now to match current logic.
+        transactionId: string,
+        externalAuthId?: string,
+        affiliateData?: AffiliateSnapshot // Capture affiliate data
     ) => {
+        const now = new Date();
+        let traceResult: AuthorizationResponse | null = null;
+        let traceError: any = null;
+        let request: AuthorizationRequest | null = null;
+
         setIsAuthorizing(true);
         setError(null);
 
@@ -97,16 +156,11 @@ export const useAuthorization = () => {
 
             // Reuse logic or pass valid External ID. 
             // Ideally, we should use the SAME external ID as the validation if the API requires state.
-            // But validation is usually stateless.
-            // Let's generate a new one or passed one. 
-            // The prompt says "asignaremos los mismos valores". 
-            // I'll regenerate for now.
-            const now = new Date();
             const numRef = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}${String(now.getSeconds()).padStart(2, '0')}${String(now.getMilliseconds()).padStart(3, '0')}`;
             const generatedAuthId = `NUM_REF_FARMACIA_${codigoFarmacia}_${numRef}`;
             const finalAuthId = externalAuthId || generatedAuthId;
 
-            const request: AuthorizationRequest = {
+            request = {
                 CodigoFarmacia: codigoFarmacia,
                 CodigoSucursal: codigoSucursal,
                 ContratoAfiliado: affiliateId,
@@ -116,12 +170,58 @@ export const useAuthorization = () => {
             };
 
             const result = await authRepository.authorize(request);
+            traceResult = result;
             setAuthorizedResponse(result);
 
         } catch (err: any) {
+            traceError = err;
             handleError(err);
         } finally {
             setIsAuthorizing(false);
+
+            // Async Traceability Log
+            if (affiliateData) {
+                const endTime = new Date();
+                const duration = endTime.getTime() - now.getTime();
+
+                try {
+                    // Use empty base URL to hit local proxy /api/traces/register
+                    const traceRepo: TraceabilityRepository = new HttpTraceabilityRepository(new FetchHttpClient(""));
+
+                    const trace: TransactionTrace = {
+                        created_at: now,
+                        transaction_id: transactionId,
+                        user_email: user?.email || "unknown",
+                        action_type: 'AUTHORIZATION',
+                        response_code: traceResult?.ErrorNumber || (traceError ? 500 : 0),
+                        duration_ms: duration,
+                        pharmacy_code: pharmacy.principal_code || pharmacy.code,
+                        branch_code: pharmacy.type === 'SUCURSAL' ? pharmacy.code : undefined,
+                        authorization_code: traceResult?.detalle?.CodigoAutorizacion ? String(traceResult.detalle.CodigoAutorizacion) : undefined,
+                        affiliate: {
+                            document: affiliateData.document,
+                            nss: affiliateData.nss,
+                            first_name: affiliateData.first_name,
+                            last_name: affiliateData.last_name,
+                            regimen: affiliateData.regimen,
+                            status: affiliateData.status
+                        },
+                        payload_input: request || {
+                            CodigoFarmacia: pharmacy.principal_code || pharmacy.code,
+                            CodigoSucursal: pharmacy.type === 'SUCURSAL' ? pharmacy.code : null,
+                            ContratoAfiliado: affiliateId,
+                            CodigoProgramaPyP: pypCode,
+                            AutorizacionExterna: externalAuthId || "UNKNOWN",
+                            Medicamentos: medications
+                        },
+                        payload_output: traceResult || traceError || {}
+                    };
+
+                    await traceRepo.save(trace);
+                } catch (e) {
+                    console.error("Trace error during authorization:", e);
+                }
+            }
         }
     }
 

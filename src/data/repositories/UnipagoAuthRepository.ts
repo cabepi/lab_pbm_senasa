@@ -1,6 +1,8 @@
 import type { HttpClient } from "../../domain/repositories/HttpClient";
 
-export class UnipagoAuthRepository {
+import type { AuthenticationRepository } from "../../domain/repositories/AuthenticationRepository";
+
+export class UnipagoAuthRepository implements AuthenticationRepository {
     private http: HttpClient;
     private baseUrl: string;
 
