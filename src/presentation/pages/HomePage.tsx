@@ -12,7 +12,7 @@ import { Badge } from "../components/ui/Badge";
 
 export const HomePage: React.FC = () => {
     const [cedula, setCedula] = useState("");
-    const { affiliate, isLoading, error, searchAffiliate } = useAffiliateSearch();
+    const { affiliate, isLoading, error, warning, searchAffiliate } = useAffiliateSearch();
 
     const handleSearch = (e: React.FormEvent) => {
         e.preventDefault();
@@ -43,9 +43,18 @@ export const HomePage: React.FC = () => {
                 </form>
             </Card>
 
-            {error && (
-                <div className="p-4 bg-red-50 text-red-700 border border-red-200 rounded-lg flex items-center gap-2">
+            {warning && (
+                <div className="p-4 bg-yellow-50 text-yellow-800 border border-yellow-200 rounded-lg flex items-center gap-2 animate-in fade-in slide-in-from-top-2">
                     <AlertCircle size={20} />
+                    <span className="font-medium">Atención:</span>
+                    <span>{warning}</span>
+                </div>
+            )}
+
+            {error && (
+                <div className="p-4 bg-red-50 text-red-700 border border-red-200 rounded-lg flex items-center gap-2 animate-in fade-in slide-in-from-top-2">
+                    <AlertCircle size={20} />
+                    <span className="font-medium">Error:</span>
                     <span>{error}</span>
                 </div>
             )}
@@ -65,7 +74,7 @@ export const HomePage: React.FC = () => {
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <Card title="Información Personal" className="border-l-4 border-l-senasa-primary">
+                        <Card title="Información Personal" className="border-l-4 border-l-senasa-primary" collapsible defaultOpen={true}>
                             <dl className="grid grid-cols-1 gap-y-4 text-sm mt-2">
                                 <div>
                                     <dt className="text-gray-500">Nombre Completo</dt>
@@ -94,7 +103,7 @@ export const HomePage: React.FC = () => {
                             </dl>
                         </Card>
 
-                        <Card title="Contacto y Régimen" className="border-l-4 border-l-purple-500">
+                        <Card title="Contacto y Régimen" className="border-l-4 border-l-purple-500" collapsible defaultOpen={true}>
                             <dl className="grid grid-cols-1 gap-y-4 text-sm mt-2">
                                 <div>
                                     <dt className="text-gray-500">Régimen</dt>

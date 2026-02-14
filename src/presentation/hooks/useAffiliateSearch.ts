@@ -8,37 +8,48 @@ export const useAffiliateSearch = () => {
     const [affiliate, setAffiliate] = useState<Affiliate | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [warning, setWarning] = useState<string | null>(null);
 
     const searchAffiliate = async (cedula: string) => {
         setIsLoading(true);
         setError(null);
+        setWarning(null);
         setAffiliate(null);
 
         try {
             // Initialize repositories (In a real app, use DI)
-            const httpClient = new FetchHttpClient("/unipago"); // Use proxy prefix
-            const authRepo = new UnipagoAuthRepository(httpClient, ""); // Auth is at /unipago/Autenticar
-            const affiliateRepo = new UnipagoAffiliateRepository(httpClient, authRepo, ""); // API is relative to proxy
-
-            // The repositories use baseUrl + endpoint. 
-            // Proxy maps /unipago -> http://186.148.93.132/MedicamentosUnipago
-            // Auth: /unipago/Autenticar -> http://.../Autenticar
-            // Search: /unipago/api/Afiliado/Consultar -> http://.../api/Afiliado/Consultar
+            const httpClient = new FetchHttpClient("/unipago");
+            const authRepo = new UnipagoAuthRepository(httpClient, "");
+            const affiliateRepo = new UnipagoAffiliateRepository(httpClient, authRepo, "");
 
             const result = await affiliateRepo.findByCedula(cedula);
 
             if (result) {
-                setAffiliate(result);
+                // Check for specific API error/warning structure
+                // ErrorNumber 1000 indicates success
+                if (result.ErrorNumber === 1000) {
+                    setAffiliate(result);
+                } else {
+                    // Any other ErrorNumber indicates a problem/warning
+                    setWarning(result.ErrorMessage || "Advertencia desconocida del servicio.");
+                    setAffiliate(null); // Ensure no affiliate data is shown if there's a warning/error
+                }
             } else {
-                setError("Afiliado no encontrado.");
+                // Should likely not be reached if repo throws, but just in case
+                setError("No se pudo obtener respuesta del servicio.");
             }
-        } catch (err) {
-            setError("Error al buscar el afiliado.");
+        } catch (err: any) {
             console.error(err);
+            const message = err.message || "";
+            if (message.includes("500")) {
+                setError("Ha ocurrido un error inesperado. Por favor intente más tarde.");
+            } else {
+                setError(`Error al buscar el afiliado: ${message}`);
+            }
         } finally {
             setIsLoading(false);
         }
     };
 
-    return { affiliate, isLoading, error, searchAffiliate };
+    return { affiliate, isLoading, error, warning, searchAffiliate };
 };

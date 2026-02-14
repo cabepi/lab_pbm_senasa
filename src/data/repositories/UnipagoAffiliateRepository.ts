@@ -15,22 +15,18 @@ export class UnipagoAffiliateRepository implements AffiliateRepository {
     }
 
     async findByCedula(cedula: string): Promise<Affiliate | null> {
-        try {
-            const token = await this.authRepo.authenticate();
-            const response = await this.http.get<Affiliate>(
-                `${this.baseUrl}/api/Afiliado/Consultar`,
-                {
-                    TipoDocumento: 1,
-                    NoDocumento: cedula,
-                },
-                {
-                    Authorization: `Bearer ${token}`,
-                }
-            );
-            return response;
-        } catch (error) {
-            console.error("Error fetching affiliate:", error);
-            return null;
-        }
+        // We let errors bubble up to be handled by the use case/hook
+        const token = await this.authRepo.authenticate();
+        const response = await this.http.get<Affiliate>(
+            `${this.baseUrl}/api/Afiliado/Consultar`,
+            {
+                TipoDocumento: 1,
+                NoDocumento: cedula,
+            },
+            {
+                Authorization: `Bearer ${token}`,
+            }
+        );
+        return response;
     }
 }
