@@ -17,7 +17,7 @@ export const Collapsible: React.FC<CollapsibleProps> = ({ title, children, defau
                 onClick={() => setIsOpen(!isOpen)}
                 className="w-full flex items-center justify-between px-4 py-3 bg-gray-50 hover:bg-gray-100 transition-colors"
             >
-                <div className="flex items-center gap-2 font-medium text-gray-700">
+                <div className="flex items-center gap-2 font-medium text-base text-gray-700">
                     {isOpen ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
                     {title}
                     {badgeCount !== undefined && (

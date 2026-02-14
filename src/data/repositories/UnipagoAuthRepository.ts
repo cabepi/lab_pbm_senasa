@@ -13,8 +13,8 @@ export class UnipagoAuthRepository {
         const response = await this.http.post<{ access_token: string }>(
             `${this.baseUrl}/Autenticar`,
             {
-                username: "101893494",
-                password: "9f3c4e2b7a1d8c6f0b2e49d7c8a3f5e1",
+                username: import.meta.env.VITE_SENASA_USERNAME,
+                password: import.meta.env.VITE_SENASA_PASSWORD,
                 grant_type: "password",
             },
             {

@@ -9,42 +9,80 @@ import { ProgramList } from "../components/affiliate/ProgramList";
 import { Search, Phone, Smartphone, AlertCircle, CheckCircle } from "lucide-react";
 import { useAffiliateSearch } from "../hooks/useAffiliateSearch";
 import { Badge } from "../components/ui/Badge";
+import { AuthorizationPanel } from "../components/authorization/AuthorizationPanel";
+import { useAuthorization } from "../hooks/useAuthorization";
+import type { Medication } from "../../domain/models/Authorization";
 
 export const HomePage: React.FC = () => {
     const [cedula, setCedula] = useState("");
     const { affiliate, isLoading, error, warning, searchAffiliate } = useAffiliateSearch();
+    const { isLoading: isAuthLoading, error: authError, response: authResponse, validateAuthorization } = useAuthorization();
+
+    const [isAuthStarted, setIsAuthStarted] = useState(false);
+
+    const handleValidate = (medications: Medication[]) => {
+        if (!affiliate) return;
+        // Use CodigoAfiliado as ContratoAfiliado
+        validateAuthorization(affiliate.CodigoAfiliado.toString(), medications);
+    };
+
+    const handleStartAuthorization = () => {
+        setIsAuthStarted(true);
+    };
 
     const handleSearch = (e: React.FormEvent) => {
         e.preventDefault();
         if (cedula.trim()) {
             searchAffiliate(cedula.trim());
+            setIsAuthStarted(false); // Reset auth state on new search
         }
     };
 
+    const handleCedulaChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        let value = e.target.value.replace(/\D/g, ""); // Remove non-digits
+
+        if (value.length > 11) {
+            value = value.slice(0, 11);
+        }
+
+        // Apply mask: 000-0000000-0
+        if (value.length > 3 && value.length <= 10) {
+            value = `${value.slice(0, 3)}-${value.slice(3)}`;
+        } else if (value.length > 10) {
+            value = `${value.slice(0, 3)}-${value.slice(3, 10)}-${value.slice(10)}`;
+        }
+
+        setCedula(value);
+    };
+
     return (
-        <div className="max-w-4xl mx-auto space-y-8 pb-12">
+        <div className="max-w-7xl mx-auto space-y-8 pb-12 px-4 sm:px-6 lg:px-8">
             <PageHeader title="Búsqueda de Afiliados" subtitle="Ingrese la cédula del afiliado para consultar su información en Unipago." />
 
-            <Card className="p-8 shadow-md border-t-4 border-t-senasa-secondary">
-                <form onSubmit={handleSearch} className="flex flex-col md:flex-row gap-4 items-end">
-                    <div className="flex-1 w-full">
-                        <Input
-                            label="Cédula"
-                            placeholder="Ej: 402-2045470-2"
-                            value={cedula}
-                            onChange={(e) => setCedula(e.target.value)}
-                            icon={<Search size={18} />}
-                            required
-                        />
-                    </div>
-                    <Button type="submit" isLoading={isLoading} disabled={!cedula.trim()}>
-                        Buscar Afiliado
-                    </Button>
-                </form>
-            </Card>
+            <div className="max-w-4xl mx-auto">
+                <Card className="p-6 shadow-md border-t-4 border-t-senasa-secondary">
+                    <form onSubmit={handleSearch} className="flex flex-col md:flex-row gap-4 items-end">
+                        <div className="flex-1 w-full">
+                            <Input
+                                label="Cédula"
+                                placeholder="000-0000000-0"
+                                value={cedula}
+                                onChange={handleCedulaChange}
+                                icon={<Search size={18} />}
+                                required
+                                maxLength={13}
+                                className="py-1"
+                            />
+                        </div>
+                        <Button type="submit" isLoading={isLoading} disabled={!cedula.trim()} size="sm" className="h-[34px]">
+                            Buscar Afiliado
+                        </Button>
+                    </form>
+                </Card>
+            </div>
 
             {warning && (
-                <div className="p-4 bg-yellow-50 text-yellow-800 border border-yellow-200 rounded-lg flex items-center gap-2 animate-in fade-in slide-in-from-top-2">
+                <div className="max-w-4xl mx-auto p-4 bg-yellow-50 text-yellow-800 border border-yellow-200 rounded-lg flex items-center gap-2 animate-in fade-in slide-in-from-top-2">
                     <AlertCircle size={20} />
                     <span className="font-medium">Atención:</span>
                     <span>{warning}</span>
@@ -52,7 +90,7 @@ export const HomePage: React.FC = () => {
             )}
 
             {error && (
-                <div className="p-4 bg-red-50 text-red-700 border border-red-200 rounded-lg flex items-center gap-2 animate-in fade-in slide-in-from-top-2">
+                <div className="max-w-4xl mx-auto p-4 bg-red-50 text-red-700 border border-red-200 rounded-lg flex items-center gap-2 animate-in fade-in slide-in-from-top-2">
                     <AlertCircle size={20} />
                     <span className="font-medium">Error:</span>
                     <span>{error}</span>
@@ -62,19 +100,22 @@ export const HomePage: React.FC = () => {
             {affiliate && (
                 <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-6">
 
-                    {/* Header Status */}
-                    <div className={`p-4 rounded-lg flex items-center justify-between shadow-sm border ${affiliate.Estado === 3 ? 'bg-green-50 border-green-200 text-green-800' : 'bg-yellow-50 border-yellow-200 text-yellow-800'}`}>
-                        <div className="flex items-center gap-2 font-medium">
-                            {affiliate.Estado === 3 ? <CheckCircle size={20} /> : <AlertCircle size={20} />}
-                            <span>{affiliate.EstadoDesc}</span>
-                        </div>
-                        <div className="text-sm opacity-75">
-                            Código: {affiliate.CodigoAfiliado}
+                    {/* Header Status - Centered and constrained */}
+                    <div className="max-w-4xl mx-auto">
+                        <div className={`p-4 rounded-lg flex items-center justify-between shadow-sm border ${affiliate.Estado === 3 ? 'bg-green-50 border-green-200 text-green-800' : 'bg-yellow-50 border-yellow-200 text-yellow-800'}`}>
+                            <div className="flex items-center gap-2 font-medium">
+                                {affiliate.Estado === 3 ? <CheckCircle size={20} /> : <AlertCircle size={20} />}
+                                <span>{affiliate.EstadoDesc}</span>
+                            </div>
+                            <div className="text-sm opacity-75">
+                                Código: {affiliate.CodigoAfiliado}
+                            </div>
                         </div>
                     </div>
 
+                    {/* Grid Layout: Row 1 (Info & Contact) */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <Card title="Información Personal" className="border-l-4 border-l-senasa-primary" collapsible defaultOpen={true}>
+                        <Collapsible title="Información Personal" defaultOpen={true}>
                             <dl className="grid grid-cols-1 gap-y-4 text-sm mt-2">
                                 <div>
                                     <dt className="text-gray-500">Nombre Completo</dt>
@@ -101,9 +142,9 @@ export const HomePage: React.FC = () => {
                                     </div>
                                 </div>
                             </dl>
-                        </Card>
+                        </Collapsible>
 
-                        <Card title="Contacto y Régimen" className="border-l-4 border-l-purple-500" collapsible defaultOpen={true}>
+                        <Collapsible title="Contacto y Régimen" defaultOpen={true}>
                             <dl className="grid grid-cols-1 gap-y-4 text-sm mt-2">
                                 <div>
                                     <dt className="text-gray-500">Régimen</dt>
@@ -126,19 +167,40 @@ export const HomePage: React.FC = () => {
                                     </div>
                                 </div>
                             </dl>
-                        </Card>
+                        </Collapsible>
                     </div>
 
-                    {/* Collapsible Lists */}
-                    <div>
+                    {/* Grid Layout: Row 2 (Plans & Programs) */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <Collapsible title="Planes de Medicamentos" badgeCount={affiliate.ListaPlanesMedicamentos?.length} defaultOpen={true}>
                             <PlanList plans={affiliate.ListaPlanesMedicamentos} />
                         </Collapsible>
 
-                        <Collapsible title="Programas PyP" badgeCount={affiliate.ListaProgramaPyP?.length}>
+                        <Collapsible title="Programas PyP" badgeCount={affiliate.ListaProgramaPyP?.length} defaultOpen={true}>
                             <ProgramList programs={affiliate.ListaProgramaPyP} />
                         </Collapsible>
                     </div>
+
+                    {/* Authorization Action */}
+                    {!isAuthStarted && (
+                        <div className="flex justify-center pt-8 pb-4">
+                            <Button size="lg" onClick={handleStartAuthorization} className="px-8 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all">
+                                Validar Cobertura
+                            </Button>
+                        </div>
+                    )}
+
+                    {/* Authorization Panel */}
+                    {isAuthStarted && (
+                        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                            <AuthorizationPanel
+                                onValidate={handleValidate}
+                                isLoading={isAuthLoading}
+                                error={authError}
+                                response={authResponse}
+                            />
+                        </div>
+                    )}
                 </div>
             )}
         </div>

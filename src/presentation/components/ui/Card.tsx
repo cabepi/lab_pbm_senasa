@@ -36,7 +36,7 @@ export const Card: React.FC<CardProps> = ({
                     onClick={toggle}
                 >
                     <div>
-                        {title && <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{title}</h3>}
+                        {title && <h3 className="text-base font-medium text-gray-900 dark:text-white">{title}</h3>}
                         {description && <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{description}</p>}
                     </div>
                     {collapsible && (
