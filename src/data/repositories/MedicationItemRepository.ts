@@ -8,7 +8,7 @@ export class MedicationItemRepository {
 
     constructor() {
         this.http = new FetchHttpClient();
-        this.baseUrl = 'http://localhost:3001/api';
+        this.baseUrl = '/api';
     }
 
     async search(query: string): Promise<MedicationItem[]> {
