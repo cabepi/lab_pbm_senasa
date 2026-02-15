@@ -1,4 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { getDb } from './_db';
+import bcrypt from 'bcryptjs';
 
 export default async function handler(_req: VercelRequest, res: VercelResponse) {
     const debugInfo: any = {
@@ -12,36 +14,18 @@ export default async function handler(_req: VercelRequest, res: VercelResponse) 
     };
 
     try {
-        // 1. Dynamic import _db
-        let getDb;
-        try {
-            const dbModule = await import('./_db');
-            getDb = dbModule.getDb;
-            debugInfo.steps.push('Imported _db');
-        } catch (e: any) {
-            debugInfo.dbImportError = e.message;
-            throw new Error(`Failed to import _db: ${e.message}`);
-        }
-
-        // 2. Dynamic import bcryptjs
-        let bcrypt;
-        try {
-            const bcryptModule = await import('bcryptjs');
-            bcrypt = bcryptModule.default || bcryptModule;
-            debugInfo.steps.push('Imported bcryptjs');
-        } catch (e: any) {
-            throw new Error(`Failed to import bcryptjs: ${e.message}`);
-        }
-
-        // 3. Test Bcrypt Execution
+        // 1. Test Bcrypt Execution
+        debugInfo.steps.push('Testing bcrypt...');
         const hash = await bcrypt.hash('test', 1);
         debugInfo.steps.push('Bcrypt hash works');
         debugInfo.bcryptSample = hash;
 
-        // 4. Test DB Connection
+        // 2. Test DB Connection
+        debugInfo.steps.push('Testing DB connection...');
         const db = getDb();
         debugInfo.steps.push('DB Client created');
 
+        // Force cast to any if needed, though updated _db.ts should be fine
         const result = await db.query('SELECT NOW() as time');
         debugInfo.steps.push('DB Query executed');
         debugInfo.dbTime = result.rows[0].time;
