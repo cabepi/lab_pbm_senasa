@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { getDb } from './_lib/db';
-// import bcrypt from 'bcryptjs'; // Commented out to isolate crash
+import bcrypt from 'bcryptjs';
 
 export default async function handler(_req: VercelRequest, res: VercelResponse) {
     const debugInfo: any = {
@@ -14,20 +14,21 @@ export default async function handler(_req: VercelRequest, res: VercelResponse) 
     };
 
     try {
-        // 1. Test Bcrypt Execution (KSKIPPED)
-        debugInfo.steps.push('Skipping bcrypt test...');
-        // const hash = await bcrypt.hash('test', 1);
-        // debugInfo.steps.push('Bcrypt hash works');
-        // debugInfo.bcryptSample = hash;
+        // 1. Test Bcrypt Execution
+        debugInfo.steps.push('Testing bcrypt...');
+        const hash = await bcrypt.hash('test', 1);
+        debugInfo.steps.push('Bcrypt hash works');
+        debugInfo.bcryptSample = hash;
 
         // 2. Test DB Connection
-        debugInfo.steps.push('Testing DB connection (via src/lib/db)...');
+        debugInfo.steps.push('Testing DB connection (via api/_lib/db)...');
         const db = getDb();
         debugInfo.steps.push('DB Client created');
 
-        // This uses the fixed .query() method in src/lib/db.ts
+        // Execute query
         const result = await db.query('SELECT NOW() as time');
         debugInfo.steps.push('DB Query executed');
+        // Our wrapper returns { rows: [...] }
         debugInfo.dbTime = result.rows[0].time;
 
         res.json({ status: 'ok', debugInfo });
