@@ -4,23 +4,28 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 const TARGET_BASE_URL = process.env.VITE_SENASA_BASE_URL || 'http://186.148.93.132/';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-    const { path } = req.query; // path is an array from [...path]
+    // 1. Extract path and separate other query params
+    const { path, ...restQueryParams } = req.query;
 
+    // 2. Parsed path
     let pathStr = '';
     if (path) {
         pathStr = Array.isArray(path) ? path.join('/') : path as string;
     } else {
-        // Fallback: try to extract from req.url manually if query param is missing
-        // req.url e.g., "/api/unipago/Autenticar"
         const parts = (req.url || '').split('/api/unipago/');
         if (parts.length > 1) {
-            pathStr = parts[1];
+            // Remove query string from the extracted path if present
+            pathStr = parts[1].split('?')[0];
         }
     }
 
-    // Clean trailing slash from base URL to prevent double slashes
+    // 3. Construct Query String
+    const queryParams = new URLSearchParams(restQueryParams as any).toString();
+    const queryString = queryParams ? `?${queryParams}` : '';
+
+    // 4. Construct Target URL
     const cleanBaseUrl = TARGET_BASE_URL.replace(/\/$/, '');
-    const targetUrl = `${cleanBaseUrl}/MedicamentosUnipago/${pathStr}`;
+    const targetUrl = `${cleanBaseUrl}/MedicamentosUnipago/${pathStr}${queryString}`;
 
     console.log(`[Proxy] Start: ${req.method} ${targetUrl}`);
     console.log(`[Proxy] req.url: ${req.url}`);
