@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { getDb } from '../../_lib/db';
+import { getDb } from '../../_lib/db.js';
 
 const SENASA_BASE_URL = process.env.VITE_SENASA_BASE_URL;
 const SENASA_USERNAME = process.env.VITE_SENASA_USERNAME;
