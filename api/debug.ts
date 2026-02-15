@@ -12,41 +12,31 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     };
 
     try {
-        // 1. Test Bcrypt Import
+        // 1. Dynamic import _db
+        let getDb;
+        try {
+            const dbModule = await import('./_db');
+            getDb = dbModule.getDb;
+            debugInfo.steps.push('Imported _db');
+        } catch (e: any) {
+            debugInfo.dbImportError = e.message;
+            throw new Error(`Failed to import _db: ${e.message}`);
+        }
+
+        // 2. Dynamic import bcryptjs
         let bcrypt;
         try {
             const bcryptModule = await import('bcryptjs');
             bcrypt = bcryptModule.default || bcryptModule;
             debugInfo.steps.push('Imported bcryptjs');
         } catch (e: any) {
-            debugInfo.bcryptError = e.message;
             throw new Error(`Failed to import bcryptjs: ${e.message}`);
         }
 
-        // 2. Test Bcrypt Execution
+        // 3. Test Bcrypt Execution
         const hash = await bcrypt.hash('test', 1);
         debugInfo.steps.push('Bcrypt hash works');
         debugInfo.bcryptSample = hash;
-
-        // 3. Test DB Import
-        let getDb;
-        try {
-            // Use relative path for dynamic import
-            const dbModule = await import('./_db.js');
-            getDb = dbModule.getDb;
-            debugInfo.steps.push('Imported _db');
-        } catch (e: any) {
-            debugInfo.dbImportError = e.message;
-            // Try without .js extension if failed
-            try {
-                const dbModule = await import('./_db');
-                getDb = dbModule.getDb;
-                debugInfo.steps.push('Imported _db (no extension)');
-                debugInfo.dbImportError = null; // clear error
-            } catch (e2: any) {
-                throw new Error(`Failed to import _db: ${e.message} / ${e2.message}`);
-            }
-        }
 
         // 4. Test DB Connection
         const db = getDb();
