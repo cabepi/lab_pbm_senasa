@@ -25,7 +25,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             forwardedHeaders['Authorization'] = req.headers.authorization;
         }
 
-        let body: BodyInit | undefined;
+        let body: any;
 
         if (req.method !== 'GET' && req.method !== 'HEAD' && req.body) {
             if (contentType.includes('application/x-www-form-urlencoded')) {

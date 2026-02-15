@@ -43,7 +43,7 @@ app.use('/api/unipago', async (req, res) => {
             forwardedHeaders['Authorization'] = req.headers.authorization as string;
         }
 
-        let body: BodyInit | undefined;
+        let body: any;
 
         if (req.method !== 'GET' && req.method !== 'HEAD' && req.body) {
             if (contentType.includes('application/x-www-form-urlencoded')) {
