@@ -48,10 +48,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
         console.log('[Proxy] Fetching upstream...');
         const response = await fetch(targetUrl, fetchOptions);
-        console.log(`[Proxy] Upstream response: ${response.status} ${response.statusText}`);
+        console.log(`[Proxy] Upstream response: ${response.status}`);
 
-        // Forward headers back to client explicitly
+        // Forward response headers
         res.setHeader('Content-Type', response.headers.get('Content-Type') || 'application/json');
+
+        // DEBUG: Add target URL to header so we can see what was requested
+        res.setHeader('X-Debug-Target-Url', targetUrl);
+        res.setHeader('X-Debug-Path', pathStr);
 
         const text = await response.text();
         console.log(`[Proxy] Response body length: ${text.length}`);
