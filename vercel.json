@@ -1,15 +1,11 @@
 {
     "rewrites": [
         {
-            "source": "/api/(.*)",
-            "destination": "/api/$1"
-        },
-        {
             "source": "/unipago/(.*)",
             "destination": "/api/unipago/$1"
         },
         {
-            "source": "/((?!api/).*)",
+            "source": "/((?!api/|Health|health).*)",
             "destination": "/index.html"
         }
     ]
