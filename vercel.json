@@ -7,12 +7,14 @@
     },
     "rewrites": [
         {
-            "source": "/unipago/(.*)",
-            "destination": "/api/unipago/$1"
+            "source": "/api/unipago/(.*)",
+            "destination": "/api/proxy?path=$1"
         },
         {
+            "source": "/unipago/(.*)",
             "source": "/((?!api/|Health|health).*)",
             "destination": "/index.html"
         }
     ]
 }
+```
