@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { getDb } from '../src/lib/db';
-import bcrypt from 'bcryptjs';
+// import bcrypt from 'bcryptjs'; // Commented out to isolate crash
 
 export default async function handler(_req: VercelRequest, res: VercelResponse) {
     const debugInfo: any = {
@@ -14,18 +14,18 @@ export default async function handler(_req: VercelRequest, res: VercelResponse) 
     };
 
     try {
-        // 1. Test Bcrypt Execution
-        debugInfo.steps.push('Testing bcrypt...');
-        const hash = await bcrypt.hash('test', 1);
-        debugInfo.steps.push('Bcrypt hash works');
-        debugInfo.bcryptSample = hash;
+        // 1. Test Bcrypt Execution (KSKIPPED)
+        debugInfo.steps.push('Skipping bcrypt test...');
+        // const hash = await bcrypt.hash('test', 1);
+        // debugInfo.steps.push('Bcrypt hash works');
+        // debugInfo.bcryptSample = hash;
 
         // 2. Test DB Connection
-        debugInfo.steps.push('Testing DB connection...');
+        debugInfo.steps.push('Testing DB connection (via src/lib/db)...');
         const db = getDb();
         debugInfo.steps.push('DB Client created');
 
-        // Force cast to any if needed, though updated _db.ts should be fine
+        // This uses the fixed .query() method in src/lib/db.ts
         const result = await db.query('SELECT NOW() as time');
         debugInfo.steps.push('DB Query executed');
         debugInfo.dbTime = result.rows[0].time;
