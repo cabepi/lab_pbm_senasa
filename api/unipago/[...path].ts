@@ -5,13 +5,26 @@ const TARGET_BASE_URL = process.env.VITE_SENASA_BASE_URL || 'http://186.148.93.1
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
     const { path } = req.query; // path is an array from [...path]
-    const pathStr = Array.isArray(path) ? path.join('/') : path;
+
+    let pathStr = '';
+    if (path) {
+        pathStr = Array.isArray(path) ? path.join('/') : path as string;
+    } else {
+        // Fallback: try to extract from req.url manually if query param is missing
+        // req.url e.g., "/api/unipago/Autenticar"
+        const parts = (req.url || '').split('/api/unipago/');
+        if (parts.length > 1) {
+            pathStr = parts[1];
+        }
+    }
 
     // Clean trailing slash from base URL to prevent double slashes
     const cleanBaseUrl = TARGET_BASE_URL.replace(/\/$/, '');
     const targetUrl = `${cleanBaseUrl}/MedicamentosUnipago/${pathStr}`;
 
     console.log(`[Proxy] Start: ${req.method} ${targetUrl}`);
+    console.log(`[Proxy] req.url: ${req.url}`);
+    console.log(`[Proxy] req.query: ${JSON.stringify(req.query)}`);
     console.log(`[Proxy] Body type: ${typeof req.body}`);
 
     try {
@@ -59,7 +72,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
         // DEBUG: Add target URL to header so we can see what was requested
         res.setHeader('X-Debug-Target-Url', targetUrl);
-        res.setHeader('X-Debug-Path', pathStr);
+        res.setHeader('X-Debug-Path', pathStr || '(empty)');
 
         const text = await response.text();
         console.log(`[Proxy] Response body length: ${text.length}`);
