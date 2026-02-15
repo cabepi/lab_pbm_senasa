@@ -17,23 +17,34 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     try {
+        console.log('Login attempt for:', email);
+
+        if (!process.env.DATABASE_URL) {
+            console.error('DATABASE_URL is missing');
+            return res.status(500).json({ error: 'Server configuration error' });
+        }
+
         const db = getDb();
+        console.log('Querying database...');
         const result = await db.query(
             'SELECT * FROM lab_pbm_senasa.users WHERE email = $1',
             [email]
         );
+        console.log('User found:', result.rows.length > 0);
 
         if (result.rows.length === 0) {
             return res.status(401).json({ error: 'Invalid credentials' });
         }
 
         const user = result.rows[0];
+        console.log('Verifying password...');
         const validPassword = await bcrypt.compare(password, user.password_hash);
 
         if (!validPassword) {
             return res.status(401).json({ error: 'Invalid credentials' });
         }
 
+        console.log('Generating token...');
         const token = jwt.sign(
             { userId: user.id, email: user.email },
             JWT_SECRET,
@@ -41,8 +52,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         );
 
         res.json({ token, user: { id: user.id, email: user.email, name: user.full_name } });
-    } catch (error) {
-        console.error('Login error:', error);
-        res.status(500).json({ error: 'Internal server error' });
+    } catch (error: any) {
+        console.error('Login error full details:', error);
+        console.error('Error message:', error.message);
+        console.error('Error stack:', error.stack);
+        res.status(500).json({ error: 'Internal server error', details: error.message });
     }
 }
