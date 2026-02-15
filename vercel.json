@@ -5,6 +5,10 @@
             "destination": "/api/$1"
         },
         {
+            "source": "/unipago/:path*",
+            "destination": "http://186.148.93.132/MedicamentosUnipago/:path*"
+        },
+        {
             "source": "/((?!api/).*)",
             "destination": "/index.html"
         }
