@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { getDb } from './lib/db';
+import { getDb } from './_lib/db';
 // import bcrypt from 'bcryptjs'; // Commented out to isolate crash
 
 export default async function handler(_req: VercelRequest, res: VercelResponse) {
