@@ -18,8 +18,12 @@ export const useAffiliateSearch = () => {
 
         try {
             // Initialize repositories (In a real app, use DI)
-            const apiBase = import.meta.env.VITE_API_BASE_URL || '/api';
-            const unipagoBase = `${apiBase.replace(/\/$/, '')}/unipago`;
+            const envUrl = import.meta.env.VITE_API_BASE_URL;
+            const apiBase = envUrl
+                ? (envUrl.endsWith('/api') ? envUrl : `${envUrl.replace(/\/$/, '')}/api`)
+                : '/api';
+
+            const unipagoBase = `${apiBase}/unipago`;
 
             const httpClient = new FetchHttpClient(unipagoBase);
             const authRepo = new UnipagoAuthRepository(httpClient, "");
