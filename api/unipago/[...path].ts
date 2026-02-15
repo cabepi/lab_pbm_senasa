@@ -6,7 +6,10 @@ const TARGET_BASE_URL = process.env.VITE_SENASA_BASE_URL || 'http://186.148.93.1
 export default async function handler(req: VercelRequest, res: VercelResponse) {
     const { path } = req.query; // path is an array from [...path]
     const pathStr = Array.isArray(path) ? path.join('/') : path;
-    const targetUrl = `${TARGET_BASE_URL}MedicamentosUnipago/${pathStr}`;
+
+    // Clean trailing slash from base URL to prevent double slashes
+    const cleanBaseUrl = TARGET_BASE_URL.replace(/\/$/, '');
+    const targetUrl = `${cleanBaseUrl}/MedicamentosUnipago/${pathStr}`;
 
     console.log(`[Proxy] Start: ${req.method} ${targetUrl}`);
     console.log(`[Proxy] Body type: ${typeof req.body}`);
@@ -18,6 +21,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const forwardedHeaders: Record<string, string> = {
             'Content-Type': contentType, // Preserve client content type logic
             'Accept': 'application/json',
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36', // Fake UA to satisfy strict IIS
         };
 
         // Forward Authorization if present
