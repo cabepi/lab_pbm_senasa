@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { neon } from '@neondatabase/serverless';
+import { Client } from 'pg';
 
 export default async function handler(_req: VercelRequest, res: VercelResponse) {
     try {
@@ -7,17 +7,20 @@ export default async function handler(_req: VercelRequest, res: VercelResponse) 
             throw new Error('DATABASE_URL is missing');
         }
 
-        const sql = neon(process.env.DATABASE_URL);
+        const client = new Client({
+            connectionString: process.env.DATABASE_URL,
+            ssl: { rejectUnauthorized: false }
+        });
+        await client.connect();
 
-        // Test the .query() syntax logic
-        // The error message said: use sql.query("SELECT $1", [value], options)
-        // We need to cast to any because TS definitions might be outdated or strict
-        const result = await (sql as any).query('SELECT $1::int as val', [123]);
+        // Test .query() syntax logic (native to pg)
+        const result = await client.query('SELECT $1::int as val', [123]);
+        await client.end();
 
         res.json({
             status: 'ok',
-            val: result[0].val,
-            message: 'query() syntax works!'
+            val: result.rows[0].val,
+            message: 'pg client query() works!'
         });
     } catch (error: any) {
         res.status(500).json({

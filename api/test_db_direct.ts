@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { neon } from '@neondatabase/serverless';
+import { Client } from 'pg';
 
 export default async function handler(_req: VercelRequest, res: VercelResponse) {
     try {
@@ -7,13 +7,18 @@ export default async function handler(_req: VercelRequest, res: VercelResponse) 
             throw new Error('DATABASE_URL is missing');
         }
 
-        const sql = neon(process.env.DATABASE_URL);
-        // Use the simplest possible query
-        const result = await sql`SELECT 1 as val`;
+        const client = new Client({
+            connectionString: process.env.DATABASE_URL,
+            ssl: { rejectUnauthorized: false }
+        });
+        await client.connect();
+
+        const result = await client.query('SELECT 1 as val');
+        await client.end();
 
         res.json({
             status: 'ok',
-            val: result[0].val,
+            val: result.rows[0].val,
             env: process.env.NODE_ENV
         });
     } catch (error: any) {
