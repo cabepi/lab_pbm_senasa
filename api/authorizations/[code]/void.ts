@@ -37,17 +37,29 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         }
 
         // 2. Authenticate with Unipago
-        const authResponse = await fetch(`${SENASA_BASE_URL}MedicamentosUnipago/api/Autorizacion/Autenticar`, {
+        // 2. Authenticate with Unipago
+        const authResponse = await fetch(`${SENASA_BASE_URL}MedicamentosUnipago/Autenticar`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ Usuario: SENASA_USERNAME, Clave: SENASA_PASSWORD }),
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams({
+                username: SENASA_USERNAME,
+                password: SENASA_PASSWORD,
+                grant_type: 'password',
+            }).toString(),
         });
 
+        if (!authResponse.ok) {
+            const errorText = await authResponse.text();
+            console.error('Unipago auth failed:', authResponse.status, errorText);
+            return res.status(502).json({ error: 'Failed to authenticate with Unipago' });
+        }
+
         const authData = await authResponse.json() as any;
-        const token = authData.Token || authData.token;
+        const token = authData.access_token || authData.Token || authData.token;
 
         if (!token) {
-            return res.status(502).json({ error: 'Failed to authenticate with Unipago' });
+            console.error('No token in auth response:', authData);
+            return res.status(502).json({ error: 'Failed to authenticate with Unipago (No token)' });
         }
 
         // 3. Call Unipago Anular API
