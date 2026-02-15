@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { getDb } from './_db';
+import { getDb } from '../src/lib/db';
 import bcrypt from 'bcryptjs';
 
 export default async function handler(_req: VercelRequest, res: VercelResponse) {
