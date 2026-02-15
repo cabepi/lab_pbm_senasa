@@ -12,9 +12,11 @@
         },
         {
             "source": "/unipago/(.*)",
+            "destination": "/api/proxy?path=$1"
+        },
+        {
             "source": "/((?!api/|Health|health).*)",
             "destination": "/index.html"
         }
     ]
 }
-```
