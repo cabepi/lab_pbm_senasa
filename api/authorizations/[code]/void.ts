@@ -43,7 +43,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             body: JSON.stringify({ Usuario: SENASA_USERNAME, Clave: SENASA_PASSWORD }),
         });
 
-        const authData = await authResponse.json();
+        const authData = await authResponse.json() as any;
         const token = authData.Token || authData.token;
 
         if (!token) {
