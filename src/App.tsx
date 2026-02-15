@@ -1,6 +1,7 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { HomePage } from "./presentation/pages/HomePage";
+import { AuthorizationsPage } from "./presentation/pages/AuthorizationsPage";
 import { MainLayout } from "./presentation/components/layout/MainLayout";
 import { LoginPage } from "./components/LoginPage";
 
@@ -31,7 +32,7 @@ function App() {
                 <MainLayout>
                   <Routes>
                     <Route path="/" element={<HomePage />} />
-                    {/* Add other protected routes here */}
+                    <Route path="/authorizations" element={<AuthorizationsPage />} />
                   </Routes>
                 </MainLayout>
               </ProtectedRoute>

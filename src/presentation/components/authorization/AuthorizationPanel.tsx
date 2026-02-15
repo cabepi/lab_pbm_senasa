@@ -298,9 +298,19 @@ export const AuthorizationPanel: React.FC<AuthorizationPanelProps> = ({
             {/* Error/Success Messages */}
             {error && (
                 <div className="relative p-4 bg-red-50 text-red-700 border border-red-200 rounded-lg flex items-center gap-2 animate-in fade-in slide-in-from-top-2">
-                    <AlertCircle size={20} />
-                    <span>{error}</span>
-                    <CloseButton />
+                    <div className="flex-1 flex gap-2 items-center">
+                        <AlertCircle size={20} />
+                        <span>{error}</span>
+                    </div>
+                    {onCloseMessage && (
+                        <button
+                            onClick={onCloseMessage}
+                            className="ml-2 text-current opacity-70 hover:opacity-100 focus:outline-none"
+                            aria-label="Cerrar mensaje"
+                        >
+                            <X size={16} />
+                        </button>
+                    )}
                 </div>
             )}
 
@@ -337,7 +347,15 @@ export const AuthorizationPanel: React.FC<AuthorizationPanelProps> = ({
                             </div>
                         )}
                     </div>
-                    <CloseButton />
+                    {onCloseMessage && (
+                        <button
+                            onClick={onCloseMessage}
+                            className="ml-2 text-current opacity-70 hover:opacity-100 focus:outline-none"
+                            aria-label="Cerrar mensaje"
+                        >
+                            <X size={16} />
+                        </button>
+                    )}
                 </div>
             )}
         </div>

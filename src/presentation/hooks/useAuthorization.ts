@@ -173,6 +173,29 @@ export const useAuthorization = () => {
             traceResult = result;
             setAuthorizedResponse(result);
 
+            // Save successful authorization to local DB
+            if (result.ErrorNumber === 1000 && result.detalle && affiliateData) {
+                try {
+                    await authRepository.save({
+                        authorization_code: result.detalle.CodigoAutorizacion,
+                        transaction_id: transactionId,
+                        pharmacy_code: codigoFarmacia,
+                        pharmacy_name: pharmacy.name,
+                        affiliate_document: affiliateData.document,
+                        affiliate_name: `${affiliateData.first_name} ${affiliateData.last_name}`,
+                        total_amount: result.detalle.TotalFactura,
+                        regulated_copay: result.detalle.MontoCopago,
+                        authorized_amount: result.detalle.MontoAutorizado,
+                        detail_json: result,
+                        authorizer_email: user?.email || 'unknown',
+                        branch_code: codigoSucursal
+                    });
+                } catch (saveError) {
+                    console.error("Error saving authorization record:", saveError);
+                    // Non-blocking error
+                }
+            }
+
         } catch (err: any) {
             traceError = err;
             handleError(err);

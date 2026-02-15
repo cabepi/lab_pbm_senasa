@@ -1,7 +1,9 @@
-import React from "react";
-import { Home, Settings } from "lucide-react";
+import { Link, useLocation } from "react-router-dom";
+import { Home, Settings, FileText } from "lucide-react";
 
 export const Sidebar: React.FC = () => {
+    const location = useLocation();
+
     return (
         <aside className="fixed inset-y-0 left-0 w-64 bg-white border-r border-gray-200 z-30 hidden md:flex flex-col">
             {/* Logo Area */}
@@ -23,28 +25,29 @@ export const Sidebar: React.FC = () => {
 
             {/* Navigation */}
             <nav className="flex-1 px-4 py-6 space-y-1 overflow-y-auto">
-                <NavItem icon={<Home size={20} />} label="Inicio" active />
+                <NavItem icon={<Home size={20} />} label="Inicio" to="/" active={location.pathname === "/"} />
+                <NavItem icon={<FileText size={20} />} label="Autorizaciones" to="/authorizations" active={location.pathname === "/authorizations"} />
             </nav>
 
             {/* Footer Settings */}
             <div className="p-4 border-t border-gray-100">
-                <NavItem icon={<Settings size={20} />} label="Configuración" />
+                <NavItem icon={<Settings size={20} />} label="Configuración" to="/settings" />
             </div>
         </aside>
     );
 };
 
-const NavItem: React.FC<{ icon?: React.ReactNode; label: string; active?: boolean }> = ({ icon, label, active }) => {
+const NavItem: React.FC<{ icon?: React.ReactNode; label: string; to: string; active?: boolean }> = ({ icon, label, to, active }) => {
     return (
-        <a
-            href="#"
+        <Link
+            to={to}
             className={`flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors ${active
-                    ? "bg-senasa-light text-senasa-primary border-l-4 border-senasa-primary"
-                    : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                ? "bg-senasa-light text-senasa-primary border-l-4 border-senasa-primary"
+                : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
                 }`}
         >
             {icon && <span className="mr-3 text-current">{icon}</span>}
             {label}
-        </a>
+        </Link>
     );
 };

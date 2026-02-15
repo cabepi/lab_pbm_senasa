@@ -2,6 +2,7 @@ import type { AuthorizationRequest, AuthorizationResponse } from "../../domain/m
 import type { AuthorizationRepository } from "../../domain/repositories/AuthorizationRepository";
 import type { HttpClient } from "../../domain/repositories/HttpClient";
 import { UnipagoAuthRepository } from "./UnipagoAuthRepository";
+import { FetchHttpClient } from "../infrastructure/FetchHttpClient";
 
 export class UnipagoAuthorizationRepository implements AuthorizationRepository {
     private http: HttpClient;
@@ -47,6 +48,24 @@ export class UnipagoAuthorizationRepository implements AuthorizationRepository {
         } catch (error: any) {
             console.error("Error authorizing:", error);
             throw error;
+        }
+    }
+
+    async save(authorization: any): Promise<void> {
+        try {
+            // Use a fresh client with empty base URL to hit the local API directly
+            // effectively bypassing the /unipago proxy prefix
+            console.log('[DEBUG] Saving authorization to local API at /api/authorizations');
+            const localHttp = new FetchHttpClient();
+            await localHttp.post(
+                '/api/authorizations',
+                authorization,
+                { 'Content-Type': 'application/json' }
+            );
+            console.log('[DEBUG] Authorization saved successfully');
+        } catch (error) {
+            console.error("Failed to save authorization record locally:", error);
+            // We don't throw here to avoid blocking the user flow if saving stats fails
         }
     }
 
