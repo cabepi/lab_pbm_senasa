@@ -315,9 +315,9 @@ app.post('/api/authorizations/:code/void', async (req, res) => {
         const voidedAt = new Date();
         await db.query(
             `UPDATE lab_pbm_senasa.authorizations
-             SET status = 'VOIDED', voider_email = $1, voided_at = $2
-             WHERE authorization_code = $3`,
-            [voider_email, voidedAt, code]
+             SET status = 'VOIDED', voider_email = $1, voided_at = $2, void_reason = $3
+             WHERE authorization_code = $4`,
+            [voider_email, voidedAt, motivo, code]
         );
 
         // 5. Insert trace record (non-blocking)

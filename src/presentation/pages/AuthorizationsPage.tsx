@@ -25,6 +25,7 @@ interface AuthorizationRecord {
     authorizer_email: string;
     voider_email: string | null;
     voided_at: string | null;
+    void_reason: string | null;
 }
 
 export const AuthorizationsPage: React.FC = () => {
@@ -130,7 +131,7 @@ export const AuthorizationsPage: React.FC = () => {
                             <tr>
                                 <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-24">Acciones</th>
                                 <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
-                                <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Código</th>
+                                <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cod. Aut.</th>
                                 <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fecha</th>
                                 <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Afiliado</th>
                                 <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Farmacia</th>
@@ -175,12 +176,19 @@ export const AuthorizationsPage: React.FC = () => {
                                                 )}
                                             </td>
                                             <td className="px-4 py-3 whitespace-nowrap">
-                                                <Badge
-                                                    variant={auth.status === 'AUTHORIZED' ? 'success' : 'error'}
-                                                    className="text-xs"
-                                                >
-                                                    {auth.status === 'AUTHORIZED' ? 'Autorizada' : 'Anulada'}
-                                                </Badge>
+                                                <div>
+                                                    <Badge
+                                                        variant={auth.status === 'AUTHORIZED' ? 'success' : 'error'}
+                                                        className="text-xs"
+                                                    >
+                                                        {auth.status === 'AUTHORIZED' ? 'Autorizada' : 'Anulada'}
+                                                    </Badge>
+                                                    {auth.status === 'VOIDED' && auth.void_reason && (
+                                                        <div className="text-xs text-gray-500 mt-1 max-w-[150px] truncate" title={auth.void_reason}>
+                                                            {auth.void_reason}
+                                                        </div>
+                                                    )}
+                                                </div>
                                             </td>
                                             <td className="px-4 py-3 whitespace-nowrap text-sm font-mono font-medium text-gray-900">
                                                 {auth.authorization_code}
