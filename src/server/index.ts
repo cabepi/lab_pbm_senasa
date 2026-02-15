@@ -14,8 +14,73 @@ const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-this'; // I
 
 app.use(cors());
 app.use(express.json());
+app.use(express.urlencoded({ extended: true })); // Enable parsing of URL-encoded bodies
 
 const db = new PostgresDatabaseClient();
+
+// ... (other routes) ...
+
+// Proxy for Unipago API to match Vercel Serverless Function behavior
+app.use('/api/unipago', async (req, res) => {
+    const SENASA_BASE_URL = process.env.VITE_SENASA_BASE_URL || 'http://186.148.93.132/';
+
+    // In app.use('/api/unipago'), req.url is relative to the mount point.
+    const relativePath = req.url;
+    const targetUrl = `${SENASA_BASE_URL}MedicamentosUnipago${relativePath}`;
+
+    console.log(`[Local Proxy] Forwarding ${req.method} to ${targetUrl}`);
+
+    try {
+        const contentType = req.headers['content-type'] || 'application/json';
+
+        // Forward headers
+        const forwardedHeaders: Record<string, string> = {
+            'Content-Type': contentType, // Preserve original content type
+            'Accept': 'application/json',
+        };
+
+        if (req.headers.authorization) {
+            forwardedHeaders['Authorization'] = req.headers.authorization as string;
+        }
+
+        let body: BodyInit | undefined;
+
+        if (req.method !== 'GET' && req.method !== 'HEAD' && req.body) {
+            if (contentType.includes('application/x-www-form-urlencoded')) {
+                // serialized body for form data
+                body = new URLSearchParams(req.body).toString();
+            } else {
+                // serialized body for json
+                body = JSON.stringify(req.body);
+            }
+        }
+
+        const fetchOptions: RequestInit = {
+            method: req.method,
+            headers: forwardedHeaders,
+            body: body,
+        };
+
+        const response = await fetch(targetUrl, fetchOptions);
+        console.log(`[Local Proxy] Upstream response: ${response.status}`);
+
+        // Forward response headers
+        res.setHeader('Content-Type', response.headers.get('Content-Type') || 'application/json');
+
+        const text = await response.text();
+
+        try {
+            const json = JSON.parse(text);
+            res.status(response.status).json(json);
+        } catch {
+            res.status(response.status).send(text);
+        }
+
+    } catch (error: any) {
+        console.error('[Local Proxy Error]', error);
+        res.status(500).json({ error: 'Proxy failed', details: error.message });
+    }
+});
 
 app.post('/api/login', async (req, res) => {
     const { email, password } = req.body;

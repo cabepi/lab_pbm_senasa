@@ -12,9 +12,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     console.log(`[Proxy] Body type: ${typeof req.body}`);
 
     try {
-        // Prepare headers: Filter out problematic headers and ensure correct Content-Type
+        const contentType = req.headers['content-type'] || 'application/json';
+
+        // Prepare headers: Filter out problematic headers
         const forwardedHeaders: Record<string, string> = {
-            'Content-Type': 'application/json', // Force JSON for this API
+            'Content-Type': contentType, // Preserve client content type logic
             'Accept': 'application/json',
         };
 
@@ -23,12 +25,25 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             forwardedHeaders['Authorization'] = req.headers.authorization;
         }
 
+        let body: BodyInit | undefined;
+
+        if (req.method !== 'GET' && req.method !== 'HEAD' && req.body) {
+            if (contentType.includes('application/x-www-form-urlencoded')) {
+                // If body is already string, use it. If object (parsed), serialize it.
+                body = typeof req.body === 'object'
+                    ? new URLSearchParams(req.body as any).toString()
+                    : req.body;
+            } else {
+                body = typeof req.body === 'string'
+                    ? req.body
+                    : JSON.stringify(req.body);
+            }
+        }
+
         const fetchOptions: RequestInit = {
             method: req.method,
             headers: forwardedHeaders,
-            body: req.method !== 'GET' && req.method !== 'HEAD'
-                ? (typeof req.body === 'string' ? req.body : JSON.stringify(req.body))
-                : undefined,
+            body: body,
         };
 
         console.log('[Proxy] Fetching upstream...');
