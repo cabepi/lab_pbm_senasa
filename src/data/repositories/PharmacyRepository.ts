@@ -8,7 +8,7 @@ export class PharmacyRepository {
 
     constructor() {
         this.http = new FetchHttpClient();
-        this.baseUrl = '/api';
+        this.baseUrl = import.meta.env.VITE_API_BASE_URL || '/api';
     }
 
     async search(query: string): Promise<Pharmacy[]> {
