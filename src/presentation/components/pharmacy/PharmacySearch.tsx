@@ -121,3 +121,4 @@ export const PharmacySearch: React.FC<PharmacySearchProps> = ({ onSelect, select
         </div>
     );
 };
+
