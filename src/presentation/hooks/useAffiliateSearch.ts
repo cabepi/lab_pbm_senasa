@@ -18,7 +18,10 @@ export const useAffiliateSearch = () => {
 
         try {
             // Initialize repositories (In a real app, use DI)
-            const httpClient = new FetchHttpClient("/unipago");
+            const apiBase = import.meta.env.VITE_API_BASE_URL || '/api';
+            const unipagoBase = `${apiBase.replace(/\/$/, '')}/unipago`;
+
+            const httpClient = new FetchHttpClient(unipagoBase);
             const authRepo = new UnipagoAuthRepository(httpClient, "");
             const affiliateRepo = new UnipagoAffiliateRepository(httpClient, authRepo, "");
 

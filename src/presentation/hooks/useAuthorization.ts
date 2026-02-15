@@ -38,7 +38,13 @@ export const useAuthorization = () => {
         setAuthorizedResponse(null); // Clear previous auth response
 
         try {
-            const httpClient = new FetchHttpClient("/unipago");
+            const apiBase = import.meta.env.VITE_API_BASE_URL || '/api';
+            // Ensure apiBase doesn't have trailing slash if we're concatenating, but here we want /api/unipago
+            // If apiBase is /api, result is /api/unipago.
+            // If apiBase is https://url/api, result is https://url/api/unipago.
+            const unipagoBase = `${apiBase.replace(/\/$/, '')}/unipago`;
+
+            const httpClient = new FetchHttpClient(unipagoBase);
             const authRepo = new UnipagoAuthRepository(httpClient, "");
             const authRepository: AuthorizationRepository = new UnipagoAuthorizationRepository(httpClient, authRepo, "");
 
@@ -142,7 +148,10 @@ export const useAuthorization = () => {
         setError(null);
 
         try {
-            const httpClient = new FetchHttpClient("/unipago");
+            const apiBase = import.meta.env.VITE_API_BASE_URL || '/api';
+            const unipagoBase = `${apiBase.replace(/\/$/, '')}/unipago`;
+
+            const httpClient = new FetchHttpClient(unipagoBase);
             const authRepo = new UnipagoAuthRepository(httpClient, "");
             const authRepository: AuthorizationRepository = new UnipagoAuthorizationRepository(httpClient, authRepo, "");
 

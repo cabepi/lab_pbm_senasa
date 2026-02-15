@@ -354,6 +354,55 @@ app.post('/api/authorizations/:code/void', async (req, res) => {
     }
 });
 
+
+// Proxy for Unipago API to match Vercel Serverless Function behavior
+app.use('/api/unipago/*', async (req, res) => {
+    const SENASA_BASE_URL = process.env.VITE_SENASA_BASE_URL || 'http://186.148.93.132/';
+    // Extract path after /api/unipago/
+    // input: /api/unipago/api/Afiliado/Consultar -> path: api/Afiliado/Consultar
+    const path = req.originalUrl.replace(/^\/api\/unipago\//, '');
+    const targetUrl = `${SENASA_BASE_URL}MedicamentosUnipago/${path}`;
+
+    console.log(`[Local Proxy] Forwarding ${req.method} to ${targetUrl}`);
+
+    try {
+        // Forward headers, filtering potentially problematic ones
+        const forwardedHeaders: Record<string, string> = {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+        };
+
+        if (req.headers.authorization) {
+            forwardedHeaders['Authorization'] = req.headers.authorization as string;
+        }
+
+        const fetchOptions: RequestInit = {
+            method: req.method,
+            headers: forwardedHeaders,
+            body: req.method !== 'GET' && req.method !== 'HEAD' ? JSON.stringify(req.body) : undefined,
+        };
+
+        const response = await fetch(targetUrl, fetchOptions);
+        console.log(`[Local Proxy] Upstream response: ${response.status}`);
+
+        // Forward response headers
+        res.setHeader('Content-Type', response.headers.get('Content-Type') || 'application/json');
+
+        const text = await response.text();
+
+        try {
+            const json = JSON.parse(text);
+            res.status(response.status).json(json);
+        } catch {
+            res.status(response.status).send(text);
+        }
+
+    } catch (error: any) {
+        console.error('[Local Proxy Error]', error);
+        res.status(500).json({ error: 'Proxy failed', details: error.message });
+    }
+});
+
 app.listen(port, () => {
     console.log(`Server running at http://localhost:${port}`);
 });
