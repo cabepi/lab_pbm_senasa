@@ -356,12 +356,13 @@ app.post('/api/authorizations/:code/void', async (req, res) => {
 
 
 // Proxy for Unipago API to match Vercel Serverless Function behavior
-app.use('/api/unipago/*', async (req, res) => {
+app.use('/api/unipago', async (req, res) => {
     const SENASA_BASE_URL = process.env.VITE_SENASA_BASE_URL || 'http://186.148.93.132/';
-    // Extract path after /api/unipago/
-    // input: /api/unipago/api/Afiliado/Consultar -> path: api/Afiliado/Consultar
-    const path = req.originalUrl.replace(/^\/api\/unipago\//, '');
-    const targetUrl = `${SENASA_BASE_URL}MedicamentosUnipago/${path}`;
+
+    // In app.use('/api/unipago'), req.url is relative to the mount point.
+    // e.g. /api/unipago/api/Afiliado/Consultar -> req.url = /api/Afiliado/Consultar
+    const relativePath = req.url;
+    const targetUrl = `${SENASA_BASE_URL}MedicamentosUnipago${relativePath}`;
 
     console.log(`[Local Proxy] Forwarding ${req.method} to ${targetUrl}`);
 
