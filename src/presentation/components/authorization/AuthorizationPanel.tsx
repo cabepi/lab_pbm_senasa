@@ -43,18 +43,7 @@ export const AuthorizationPanel: React.FC<AuthorizationPanelProps> = ({
 
     const totalAmount = medications.reduce((sum, med) => sum + (med.Cantidad * med.Precio), 0);
 
-    // Helper for close button
-    const CloseButton = () => (
-        onCloseMessage ? (
-            <button
-                onClick={onCloseMessage}
-                className="absolute top-2 right-2 p-1 text-gray-400 hover:text-gray-600 hover:bg-black/5 rounded-full transition-colors"
-                title="Cerrar mensaje"
-            >
-                <X size={16} />
-            </button>
-        ) : null
-    );
+
 
     const getPayloadPreview = () => {
         if (!selectedPharmacy) return null;
