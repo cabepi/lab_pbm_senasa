@@ -16,9 +16,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const db = getDb();
         const searchTerm = `%${q}%`;
         const result = await db.query(
-            `SELECT code, name, type, principal_code, principal_name
-             FROM lab_pbm_senasa.pharmacies
-             WHERE code ILIKE $1 OR name ILIKE $1 OR principal_code ILIKE $1
+            `SELECT code, name, principal_code, type 
+             FROM lab_pbm_senasa.pharmacies 
+             WHERE code::text ILIKE $1 
+                OR name ILIKE $1 
+                OR principal_code::text ILIKE $1 
+                OR type ILIKE $1
              ORDER BY name
              LIMIT 50`,
             [searchTerm]
