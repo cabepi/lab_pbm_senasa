@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
-import { Home, Settings, FileText } from "lucide-react";
+import { Home, Settings, FileText, Activity } from "lucide-react";
 
 export const Sidebar: React.FC = () => {
     const location = useLocation();
@@ -27,6 +27,7 @@ export const Sidebar: React.FC = () => {
             <nav className="flex-1 px-4 py-6 space-y-1 overflow-y-auto">
                 <NavItem icon={<Home size={20} />} label="Inicio" to="/" active={location.pathname === "/"} />
                 <NavItem icon={<FileText size={20} />} label="Autorizaciones" to="/authorizations" active={location.pathname === "/authorizations"} />
+                <NavItem icon={<Activity size={20} />} label="Trazabilidad" to="/traces" active={location.pathname === "/traces"} />
             </nav>
 
             {/* Footer Settings */}

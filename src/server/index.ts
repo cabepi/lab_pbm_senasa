@@ -169,6 +169,25 @@ app.get('/api/medications/search', async (req, res) => {
     }
 });
 
+// Endpoint to fetch traces (for local dev parity with api/traces/index.ts)
+app.get('/api/traces', async (_req, res) => {
+    try {
+        const result = await db.query(
+            `SELECT 
+                t.*,
+                COALESCE(t.authorization_code, a.authorization_code) as authorization_code
+             FROM lab_pbm_senasa.authorization_traces t
+             LEFT JOIN lab_pbm_senasa.authorizations a ON t.transaction_id = a.transaction_id
+             ORDER BY t.created_at DESC 
+             LIMIT 500`
+        );
+        res.json(result);
+    } catch (error) {
+        console.error('Error fetching traces:', error);
+        res.status(500).json({ error: 'Failed to fetch traces' });
+    }
+});
+
 // Endpoint to save a successful authorization
 app.post('/api/authorizations', async (req, res) => {
     try {

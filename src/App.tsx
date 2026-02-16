@@ -2,6 +2,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-d
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { HomePage } from "./presentation/pages/HomePage";
 import { AuthorizationsPage } from "./presentation/pages/AuthorizationsPage";
+import { TraceabilityPage } from "./presentation/pages/TraceabilityPage";
 import { MainLayout } from "./presentation/components/layout/MainLayout";
 import { LoginPage } from "./components/LoginPage";
 
@@ -33,6 +34,7 @@ function App() {
                   <Routes>
                     <Route path="/" element={<HomePage />} />
                     <Route path="/authorizations" element={<AuthorizationsPage />} />
+                    <Route path="/traces" element={<TraceabilityPage />} />
                   </Routes>
                 </MainLayout>
               </ProtectedRoute>
