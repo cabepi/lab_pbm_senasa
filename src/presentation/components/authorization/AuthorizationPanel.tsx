@@ -2,8 +2,8 @@ import React, { useState } from "react";
 import { Button } from "../ui/Button";
 import { Trash2, Package, ShieldCheck, AlertCircle, CheckCircle, X } from "lucide-react";
 import { MedicationForm } from "./MedicationForm";
-import type { Medication } from "../../domain/models/Authorization";
-import type { Pharmacy } from "../../domain/models/Pharmacy";
+import type { Medication } from "../../../domain/models/Authorization";
+import type { Pharmacy } from "../../../domain/models/Pharmacy";
 
 interface AuthorizationPanelProps {
     onValidate: (medications: Medication[], pharmacy: Pharmacy, pypCode: number) => void;
@@ -46,7 +46,7 @@ export const AuthorizationPanel: React.FC<AuthorizationPanelProps> = ({
         if (!selectedPharmacy) return null;
         return {
             codigoFarmacia: selectedPharmacy.code,
-            codigoSucursal: selectedPharmacy.branchCode || null, // Assuming branchCode exists or null
+            codigoSucursal: null,
             // medications: medications.map(m => ({ ...m })),
             pypCode,
             numRef: Math.floor(Math.random() * 1000000)
