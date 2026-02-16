@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { Button } from "../ui/Button";
 import { Trash2, Package, ShieldCheck, AlertCircle, CheckCircle, X } from "lucide-react";
 import { MedicationForm } from "./MedicationForm";
@@ -48,7 +48,8 @@ export const AuthorizationPanel: React.FC<AuthorizationPanelProps> = ({
             codigoFarmacia: selectedPharmacy.code,
             codigoSucursal: selectedPharmacy.branchCode || null, // Assuming branchCode exists or null
             // medications: medications.map(m => ({ ...m })),
-            pypCode
+            pypCode,
+            numRef: Math.floor(Math.random() * 1000000)
         };
     };
 
@@ -96,6 +97,7 @@ export const AuthorizationPanel: React.FC<AuthorizationPanelProps> = ({
                                         <tr className="bg-gray-50">
                                             <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">#</th>
                                             <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Código</th>
+                                            <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Nombre</th>
                                             <th className="px-5 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">Cantidad</th>
                                             <th className="px-5 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Precio Unit.</th>
                                             <th className="px-5 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Subtotal</th>
@@ -118,6 +120,9 @@ export const AuthorizationPanel: React.FC<AuthorizationPanelProps> = ({
                                                             </div>
                                                         )}
                                                     </span>
+                                                </td>
+                                                <td className="px-5 py-3 text-sm text-gray-600">
+                                                    {med.Nombre || ''}
                                                 </td>
                                                 <td className="px-5 py-3 text-center text-sm text-gray-700 font-medium">{med.Cantidad}</td>
                                                 <td className="px-5 py-3 text-right text-sm text-gray-700">${med.Precio.toFixed(2)}</td>

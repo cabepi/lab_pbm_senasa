@@ -61,23 +61,34 @@ export const MedicationForm: React.FC<MedicationFormProps> = ({ onAdd }) => {
         };
     }, [debouncedQuery]);
 
+    const [customCode, setCustomCode] = useState('');
+
     const handleSelectMedication = (med: MedicationItem) => {
         setSelectedMed(med);
         setSearchQuery('');
         setSearchResults([]);
+        if (med.code === '0') {
+            setCustomCode('');
+        }
     };
 
     const handleClearSelection = () => {
         setSelectedMed(null);
         setSearchQuery('');
+        setCustomCode('');
     };
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         if (!selectedMed || !cantidad || !precio) return;
 
+        // If code is '0', require custom code
+        if (selectedMed.code === '0' && !customCode) return;
+
+        const finalCode = selectedMed.code === '0' ? customCode : selectedMed.code;
+
         onAdd({
-            CodigoMedicamento: selectedMed.code,
+            CodigoMedicamento: finalCode,
             Cantidad: parseInt(cantidad, 10),
             Precio: parseFloat(precio),
             Nombre: selectedMed.name,
@@ -87,9 +98,10 @@ export const MedicationForm: React.FC<MedicationFormProps> = ({ onAdd }) => {
         setCantidad('');
         setPrecio('');
         setSearchQuery('');
+        setCustomCode('');
     };
 
-    const isValid = !!(selectedMed && cantidad && precio);
+    const isValid = !!(selectedMed && cantidad && precio && (selectedMed.code !== '0' || customCode));
 
     return (
         <div className="rounded-xl border border-gray-200 bg-gradient-to-r from-slate-50 to-white overflow-visible">
@@ -111,7 +123,7 @@ export const MedicationForm: React.FC<MedicationFormProps> = ({ onAdd }) => {
                                 ) : (
                                     <>
                                         <p className="text-sm font-bold text-gray-800 font-mono bg-yellow-50 text-yellow-800 px-2 py-0.5 rounded border border-yellow-200 w-fit">
-                                            {selectedMed.code}
+                                            {selectedMed.code === '0' ? 'Por Asignar' : selectedMed.code}
                                         </p>
                                         <p className="text-xs text-yellow-600 mt-1 flex items-center gap-1">
                                             <AlertCircle size={12} />
@@ -197,6 +209,24 @@ export const MedicationForm: React.FC<MedicationFormProps> = ({ onAdd }) => {
                 {/* Quantity, Price, and Add Button */}
                 {selectedMed && (
                     <div className="grid grid-cols-1 sm:grid-cols-12 gap-4 items-end">
+                        {/* Custom Code Input for Code 0 */}
+                        {selectedMed.code === '0' && (
+                            <div className="sm:col-span-12">
+                                <Input
+                                    label="Asignar Código Numérico"
+                                    placeholder="Ej: 12345"
+                                    value={customCode}
+                                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                                        const val = e.target.value.replace(/\D/g, ''); // Numeric only
+                                        setCustomCode(val);
+                                    }}
+                                    required
+                                    className="border-yellow-300 focus:border-yellow-500 focus:ring-yellow-200"
+                                />
+                                <p className="text-xs text-gray-500 mt-1">Este medicamento requiere un código manual.</p>
+                            </div>
+                        )}
+
                         <div className="sm:col-span-4">
                             <Input
                                 label="Cantidad"
