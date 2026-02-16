@@ -1,11 +1,9 @@
-import React, { useState } from 'react';
-import { Card } from '../ui/Card';
-import { Button } from '../ui/Button';
-import { MedicationForm } from './MedicationForm';
-import type { Medication } from '../../../domain/models/Authorization';
-import { Trash2, AlertCircle, CheckCircle, ShieldCheck, Package, X } from 'lucide-react';
-import { PharmacySearch } from '../pharmacy/PharmacySearch';
-import type { Pharmacy } from '../../../domain/models/Pharmacy';
+import React, { useState, useEffect } from "react";
+import { Button } from "../ui/Button";
+import { Trash2, Package, ShieldCheck, AlertCircle, CheckCircle, X } from "lucide-react";
+import { MedicationForm } from "./MedicationForm";
+import type { Medication } from "../../domain/models/Authorization";
+import type { Pharmacy } from "../../domain/models/Pharmacy";
 
 interface AuthorizationPanelProps {
     onValidate: (medications: Medication[], pharmacy: Pharmacy, pypCode: number) => void;
@@ -14,6 +12,7 @@ interface AuthorizationPanelProps {
     response: any | null;
     affiliateId: string;
     onCloseMessage?: () => void;
+    selectedPharmacy: Pharmacy | null;
 }
 
 export const AuthorizationPanel: React.FC<AuthorizationPanelProps> = ({
@@ -22,48 +21,33 @@ export const AuthorizationPanel: React.FC<AuthorizationPanelProps> = ({
     error,
     response,
     affiliateId,
-    onCloseMessage
+    onCloseMessage,
+    selectedPharmacy
 }) => {
     const [medications, setMedications] = useState<Medication[]>([]);
-    const [selectedPharmacy, setSelectedPharmacy] = useState<Pharmacy | null>(null);
-    const [showTooltip, setShowTooltip] = useState(false);
     const [pypCode, setPypCode] = useState<number>(0);
+    const [showTooltip, setShowTooltip] = useState(false);
 
-    const handleAddMedication = (med: Medication) => {
-        setMedications([...medications, med]);
+    // Calculate total amount
+    const totalAmount = medications.reduce((sum, med) => sum + (med.Cantidad * med.Precio), 0);
+
+    const handleAddMedication = (medication: Medication) => {
+        setMedications(prev => [...prev, medication]);
     };
 
     const handleRemoveMedication = (index: number) => {
-        setMedications(medications.filter((_, i) => i !== index));
+        setMedications(prev => prev.filter((_, i) => i !== index));
     };
 
-    const handlePharmacySelect = (pharmacy: Pharmacy | null) => {
-        setSelectedPharmacy(pharmacy);
-    };
-
-    const totalAmount = medications.reduce((sum, med) => sum + (med.Cantidad * med.Precio), 0);
-
-
+    // Reset when pharmacy changes? Or keep meds?
+    // For now, let's keep them unless user navigates away.
 
     const getPayloadPreview = () => {
         if (!selectedPharmacy) return null;
-
-        let codigoFarmacia = selectedPharmacy.code;
-        let codigoSucursal = null;
-
-        if (selectedPharmacy.type === 'SUCURSAL' && selectedPharmacy.principal_code) {
-            codigoFarmacia = selectedPharmacy.principal_code;
-            codigoSucursal = selectedPharmacy.code;
-        }
-
-        // Generate a preview of the external ID (the timestamp will differ slightly in actual request)
-        const now = new Date();
-        const numRef = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}${String(now.getSeconds()).padStart(2, '0')}...`;
-
         return {
-            codigoFarmacia,
-            codigoSucursal,
-            numRef,
+            codigoFarmacia: selectedPharmacy.code,
+            codigoSucursal: selectedPharmacy.branchCode || null, // Assuming branchCode exists or null
+            // medications: medications.map(m => ({ ...m })),
             pypCode
         };
     };
@@ -74,13 +58,8 @@ export const AuthorizationPanel: React.FC<AuthorizationPanelProps> = ({
         <div className="space-y-6">
             <h2 className="text-xl font-bold text-gray-800">Validar Autorización</h2>
 
-            {/* Step 1: Pharmacy Search */}
-            <Card className="p-6 border-l-4 border-l-blue-500">
-                <PharmacySearch onSelect={handlePharmacySelect} selectedPharmacy={selectedPharmacy} />
-            </Card>
-
-            {/* Step 2: Medications (only shown after pharmacy selection) */}
-            {selectedPharmacy && (
+            {/* Medications (only shown after pharmacy selection) */}
+            {selectedPharmacy ? (
                 <div className="space-y-5">
                     {/* Medication Form - Full Width */}
                     <MedicationForm onAdd={handleAddMedication} />
@@ -282,6 +261,12 @@ export const AuthorizationPanel: React.FC<AuthorizationPanelProps> = ({
                         </div>
                     </div>
                 </div>
+            ) : (
+                <div className="flex flex-col items-center justify-center py-12 bg-gray-50 border-2 border-dashed border-gray-200 rounded-xl text-gray-400">
+                    <ShieldCheck size={48} className="mb-4 opacity-20" />
+                    <p className="text-lg font-medium text-gray-500">Seleccione una farmacia</p>
+                    <p className="text-sm">Para continuar con la validación de medicamentos</p>
+                </div>
             )}
 
             {/* Error/Success Messages */}
@@ -303,50 +288,52 @@ export const AuthorizationPanel: React.FC<AuthorizationPanelProps> = ({
                 </div>
             )}
 
-            {response && (
-                <div className={`relative p-4 rounded-lg flex items-start gap-3 animate-in fade-in slide-in-from-top-2 border ${response.ErrorNumber === 1000
-                    ? 'bg-green-50 text-green-800 border-green-200'
-                    : 'bg-yellow-50 text-yellow-800 border-yellow-200'
-                    }`}>
-                    {response.ErrorNumber === 1000
-                        ? <CheckCircle size={24} className="mt-0.5 shrink-0" />
-                        : <AlertCircle size={24} className="mt-0.5 shrink-0" />
-                    }
-                    <div className="flex-1 space-y-1">
-                        <div className="flex items-center gap-2 mb-1">
-                            <span className={`text-[10px] font-mono font-bold uppercase tracking-wider px-1.5 py-0.5 rounded border ${response.ErrorNumber === 1000
-                                ? 'bg-green-100 border-green-200 text-green-700'
-                                : 'bg-yellow-100 border-yellow-200 text-yellow-700'
-                                }`}>
-                                Código {response.ErrorNumber}
-                            </span>
-                        </div>
-
-                        <p className="font-bold text-base">
-                            {response.ErrorNumber === 1000 ? 'Autorización Exitosa' : 'Error al validar la autorización.'}
-                        </p>
-
-                        <div className="text-sm whitespace-pre-wrap leading-relaxed opacity-90">
-                            {response.ErrorMessage}
-                        </div>
-
-                        {response.NumeroAutorizacion && (
-                            <div className="mt-2 pt-2 border-t border-green-200/50">
-                                <p className="text-sm font-medium">No. Autorización: <span className="font-mono text-base">{response.NumeroAutorizacion}</span></p>
+            {
+                response && (
+                    <div className={`relative p-4 rounded-lg flex items-start gap-3 animate-in fade-in slide-in-from-top-2 border ${response.ErrorNumber === 1000
+                        ? 'bg-green-50 text-green-800 border-green-200'
+                        : 'bg-yellow-50 text-yellow-800 border-yellow-200'
+                        }`}>
+                        {response.ErrorNumber === 1000
+                            ? <CheckCircle size={24} className="mt-0.5 shrink-0" />
+                            : <AlertCircle size={24} className="mt-0.5 shrink-0" />
+                        }
+                        <div className="flex-1 space-y-1">
+                            <div className="flex items-center gap-2 mb-1">
+                                <span className={`text-[10px] font-mono font-bold uppercase tracking-wider px-1.5 py-0.5 rounded border ${response.ErrorNumber === 1000
+                                    ? 'bg-green-100 border-green-200 text-green-700'
+                                    : 'bg-yellow-100 border-yellow-200 text-yellow-700'
+                                    }`}>
+                                    Código {response.ErrorNumber}
+                                </span>
                             </div>
+
+                            <p className="font-bold text-base">
+                                {response.ErrorNumber === 1000 ? 'Autorización Exitosa' : 'Error al validar la autorización.'}
+                            </p>
+
+                            <div className="text-sm whitespace-pre-wrap leading-relaxed opacity-90">
+                                {response.ErrorMessage}
+                            </div>
+
+                            {response.NumeroAutorizacion && (
+                                <div className="mt-2 pt-2 border-t border-green-200/50">
+                                    <p className="text-sm font-medium">No. Autorización: <span className="font-mono text-base">{response.NumeroAutorizacion}</span></p>
+                                </div>
+                            )}
+                        </div>
+                        {onCloseMessage && (
+                            <button
+                                onClick={onCloseMessage}
+                                className="ml-2 text-current opacity-70 hover:opacity-100 focus:outline-none"
+                                aria-label="Cerrar mensaje"
+                            >
+                                <X size={16} />
+                            </button>
                         )}
                     </div>
-                    {onCloseMessage && (
-                        <button
-                            onClick={onCloseMessage}
-                            className="ml-2 text-current opacity-70 hover:opacity-100 focus:outline-none"
-                            aria-label="Cerrar mensaje"
-                        >
-                            <X size={16} />
-                        </button>
-                    )}
-                </div>
-            )}
-        </div>
+                )
+            }
+        </div >
     );
 };

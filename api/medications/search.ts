@@ -14,13 +14,23 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     try {
         const db = getDb();
-        const searchTerm = `%${q}%`;
-        const result = await db.query(
-            `SELECT code, name FROM lab_pbm_senasa.medications
-             WHERE code ILIKE $1 OR name ILIKE $1
-             ORDER BY name LIMIT 50`,
-            [searchTerm]
-        );
+        const searchTerm = String(q).trim();
+        const isNumeric = /^\d+$/.test(searchTerm);
+
+        let query = '';
+        let params: any[] = [];
+
+        if (isNumeric) {
+            // Exact or prefix match for code
+            query = `SELECT code, name, price FROM lab_pbm_senasa.medications WHERE code::text LIKE $1 LIMIT 50`;
+            params = [`${searchTerm}%`];
+        } else {
+            // Fuzzy match for name
+            query = `SELECT code, name, price FROM lab_pbm_senasa.medications WHERE name ILIKE $1 LIMIT 50`;
+            params = [`%${searchTerm}%`];
+        }
+
+        const result = await db.query(query, params);
         res.json(result.rows);
     } catch (error) {
         console.error('Medication search error:', error);

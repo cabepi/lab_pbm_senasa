@@ -31,22 +31,34 @@ export const MedicationForm: React.FC<MedicationFormProps> = ({ onAdd }) => {
     const repository = new MedicationItemRepository();
 
     useEffect(() => {
-        if (debouncedQuery.length < 2) {
+        if (debouncedQuery.length < 4) {
             setSearchResults([]);
             return;
         }
+
+        let active = true; // Flag to track if the effect is still active
+
         const doSearch = async () => {
             setIsSearching(true);
             try {
                 const data = await repository.search(debouncedQuery);
-                setSearchResults(data);
+                if (active) { // Only update state if this is the most recent request
+                    setSearchResults(data);
+                }
             } catch (err) {
                 console.error(err);
             } finally {
-                setIsSearching(false);
+                if (active) {
+                    setIsSearching(false);
+                }
             }
         };
+
         doSearch();
+
+        return () => {
+            active = false; // Cleanup: Mark as inactive when query changes
+        };
     }, [debouncedQuery]);
 
     const handleSelectMedication = (med: MedicationItem) => {

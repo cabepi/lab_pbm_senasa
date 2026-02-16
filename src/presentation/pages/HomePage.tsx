@@ -14,11 +14,13 @@ import { AuthorizationSummaryModal } from "../components/authorization/Authoriza
 import { useAuthorization } from "../hooks/useAuthorization";
 import type { Medication } from "../../domain/models/Authorization";
 import type { Pharmacy } from "../../domain/models/Pharmacy";
+import { PharmacySearch } from "../components/pharmacy/PharmacySearch";
 
 export const HomePage: React.FC = () => {
     const [cedula, setCedula] = useState("");
     const { affiliate, isLoading, error, warning, searchAffiliate } = useAffiliateSearch();
     const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+    const [selectedPharmacy, setSelectedPharmacy] = useState<Pharmacy | null>(null);
     const [currentTransaction, setCurrentTransaction] = useState<{
         medications: Medication[];
         pharmacy: Pharmacy;
@@ -175,8 +177,7 @@ export const HomePage: React.FC = () => {
 
     return (
         <div className="max-w-7xl mx-auto space-y-8 pb-12 px-4 sm:px-6 lg:px-8">
-            {/* ... (existing header and search) ... */}
-            <PageHeader title="Búsqueda de Afiliados" subtitle="Ingrese la cédula del afiliado para consultar su información en Unipago." />
+            <PageHeader title="Creación de Autorizaciones de Medicamentos" subtitle="Complete los pasos para validar y autorizar medicamentos." />
 
             {/* Authorization Summary Modal */}
             <AuthorizationSummaryModal
@@ -187,10 +188,25 @@ export const HomePage: React.FC = () => {
                 isAuthorizing={isAuthorizing}
             />
 
+            {/* Step 1: Pharmacy Search */}
             <div className="max-w-4xl mx-auto">
-                <Card className="p-6 shadow-md border-t-4 border-t-senasa-secondary">
+                <Card className="p-6 border-l-4 border-l-blue-500 shadow-md">
+                    <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                        <span className="bg-blue-100 text-blue-800 text-xs font-bold px-2 py-0.5 rounded-full">Paso 1</span>
+                        Seleccionar Farmacia
+                    </h3>
+                    <PharmacySearch onSelect={setSelectedPharmacy} selectedPharmacy={selectedPharmacy} />
+                </Card>
+            </div>
+
+            {/* Step 2: Affiliate Search */}
+            <div className="max-w-4xl mx-auto">
+                <Card className={`p-6 shadow-md border-t-4 border-t-senasa-secondary ${!selectedPharmacy ? 'opacity-50 pointer-events-none grayscale' : ''}`}>
+                    <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                        <span className="bg-blue-100 text-blue-800 text-xs font-bold px-2 py-0.5 rounded-full">Paso 2</span>
+                        Buscar Afiliado
+                    </h3>
                     <form onSubmit={handleSearch} className="flex flex-col md:flex-row gap-4 items-end">
-                        {/* ... (existing form content) ... */}
                         <div className="flex-1 w-full">
                             <Input
                                 label="Cédula"
@@ -201,16 +217,16 @@ export const HomePage: React.FC = () => {
                                 required
                                 maxLength={13}
                                 className="py-1"
+                                disabled={!selectedPharmacy}
                             />
                         </div>
-                        <Button type="submit" isLoading={isLoading} disabled={!cedula.trim()} size="sm" className="h-[34px]">
+                        <Button type="submit" isLoading={isLoading} disabled={!cedula.trim() || !selectedPharmacy} size="sm" className="h-[34px]">
                             Buscar Afiliado
                         </Button>
                     </form>
                 </Card>
             </div>
 
-            {/* ... (existing warnings and errors) ... */}
             {warning && (
                 <div className="max-w-4xl mx-auto p-4 bg-yellow-50 text-yellow-800 border border-yellow-200 rounded-lg flex items-center gap-2 animate-in fade-in slide-in-from-top-2">
                     <AlertCircle size={20} />
@@ -229,8 +245,6 @@ export const HomePage: React.FC = () => {
 
             {affiliate && (
                 <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-6">
-                    {/* ... (existing affiliate details) ... */}
-                    {/* Header Status */}
                     <div className="max-w-4xl mx-auto">
                         <div className={`p-4 rounded-lg flex items-center justify-between shadow-sm border ${affiliate.Estado === 3 ? 'bg-green-50 border-green-200 text-green-800' : 'bg-yellow-50 border-yellow-200 text-yellow-800'}`}>
                             <div className="flex items-center gap-2 font-medium">
@@ -243,7 +257,6 @@ export const HomePage: React.FC = () => {
                         </div>
                     </div>
 
-                    {/* Grid Layout: Row 1 */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <Collapsible title="Información Personal" defaultOpen={true}>
                             <dl className="grid grid-cols-1 gap-y-4 text-sm mt-2">
@@ -300,7 +313,6 @@ export const HomePage: React.FC = () => {
                         </Collapsible>
                     </div>
 
-                    {/* Grid Layout: Row 2 */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <Collapsible title="Planes de Medicamentos" badgeCount={affiliate.ListaPlanesMedicamentos?.length} defaultOpen={true}>
                             <PlanList plans={affiliate.ListaPlanesMedicamentos} />
@@ -314,7 +326,7 @@ export const HomePage: React.FC = () => {
                     {!isAuthStarted && (
                         <div className="flex justify-center pt-8 pb-4">
                             <Button size="lg" onClick={handleStartAuthorization} className="px-8 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all">
-                                Validar Cobertura
+                                Validar Cobertura (Paso 3)
                             </Button>
                         </div>
                     )}
@@ -328,6 +340,7 @@ export const HomePage: React.FC = () => {
                                 response={authResponse}
                                 affiliateId={affiliate.CodigoAfiliado.toString()}
                                 onCloseMessage={resetState}
+                                selectedPharmacy={selectedPharmacy}
                             />
                         </div>
                     )}
