@@ -1,5 +1,5 @@
 import type { AuthorizationRequest, AuthorizationResponse } from "../../domain/models/Authorization";
-import type { AuthorizationRepository } from "../../domain/repositories/AuthorizationRepository";
+import type { AuthorizationRepository, AuthorizationSaveParams } from "../../domain/repositories/AuthorizationRepository";
 import type { HttpClient } from "../../domain/repositories/HttpClient";
 import { UnipagoAuthRepository } from "./UnipagoAuthRepository";
 import { FetchHttpClient } from "../infrastructure/FetchHttpClient";
@@ -51,7 +51,7 @@ export class UnipagoAuthorizationRepository implements AuthorizationRepository {
         }
     }
 
-    async save(authorization: any): Promise<void> {
+    async save(authorization: AuthorizationSaveParams): Promise<void> {
         try {
             // Use a fresh client with empty base URL to hit the local API directly
             // effectively bypassing the /unipago proxy prefix

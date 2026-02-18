@@ -1,5 +1,5 @@
 import type { Affiliate } from "../models/Affiliate";
 
 export interface AffiliateRepository {
-    findByCedula(cedula: string): Promise<Affiliate | null>;
+    findByDocument(documentNumber: string, documentType: number): Promise<Affiliate | null>;
 }

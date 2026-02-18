@@ -138,7 +138,16 @@ export const useAuthorization = () => {
         pypCode: number = 0,
         transactionId: string,
         externalAuthId?: string,
-        affiliateData?: AffiliateSnapshot // Capture affiliate data
+        affiliateData?: AffiliateSnapshot, // Capture affiliate data
+        callerInfo?: { name: string; documentId: string; phone: string } | null,
+        prescriptionData?: {
+            prescriber_name: string;
+            prescription_date: string;
+            diagnosis: string;
+            is_chronic: boolean;
+            file_path?: string;
+            prescription_type?: 'NORMAL' | 'PYP' | 'EMERGENCY';
+        }
     ) => {
         const now = new Date();
         let traceResult: AuthorizationResponse | null = null;
@@ -191,7 +200,7 @@ export const useAuthorization = () => {
             if (result.ErrorNumber === 1000 && result.detalle && affiliateData) {
                 try {
                     await authRepository.save({
-                        authorization_code: result.detalle.CodigoAutorizacion,
+                        authorization_code: String(result.detalle.CodigoAutorizacion),
                         transaction_id: transactionId,
                         pharmacy_code: codigoFarmacia,
                         pharmacy_name: pharmacy.name,
@@ -202,7 +211,11 @@ export const useAuthorization = () => {
                         authorized_amount: result.detalle.MontoAutorizado,
                         detail_json: result,
                         authorizer_email: user?.email || 'unknown',
-                        branch_code: codigoSucursal
+                        branch_code: codigoSucursal,
+                        caller_name: callerInfo?.name,
+                        caller_document: callerInfo?.documentId,
+                        caller_phone: callerInfo?.phone,
+                        prescription: prescriptionData
                     });
                 } catch (saveError) {
                     console.error("Error saving authorization record:", saveError);

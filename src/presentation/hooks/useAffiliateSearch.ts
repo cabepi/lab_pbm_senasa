@@ -10,7 +10,7 @@ export const useAffiliateSearch = () => {
     const [error, setError] = useState<string | null>(null);
     const [warning, setWarning] = useState<string | null>(null);
 
-    const searchAffiliate = async (cedula: string) => {
+    const searchAffiliate = async (documentNumber: string, documentType: number = 1) => {
         setIsLoading(true);
         setError(null);
         setWarning(null);
@@ -29,7 +29,7 @@ export const useAffiliateSearch = () => {
             const authRepo = new UnipagoAuthRepository(httpClient, "");
             const affiliateRepo = new UnipagoAffiliateRepository(httpClient, authRepo, "");
 
-            const result = await affiliateRepo.findByCedula(cedula);
+            const result = await affiliateRepo.findByDocument(documentNumber, documentType);
 
             if (result) {
                 // Check for specific API error/warning structure

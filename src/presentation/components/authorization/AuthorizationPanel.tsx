@@ -6,13 +6,14 @@ import type { Medication } from "../../../domain/models/Authorization";
 import type { Pharmacy } from "../../../domain/models/Pharmacy";
 
 interface AuthorizationPanelProps {
-    onValidate: (medications: Medication[], pharmacy: Pharmacy, pypCode: number) => void;
+    onValidate: (medications: Medication[], pharmacy: Pharmacy) => void;
     isLoading: boolean;
     error: string | null;
     response: any | null;
     affiliateId: string;
     onCloseMessage?: () => void;
     selectedPharmacy: Pharmacy | null;
+    pypCode: number;
 }
 
 export const AuthorizationPanel: React.FC<AuthorizationPanelProps> = ({
@@ -22,10 +23,10 @@ export const AuthorizationPanel: React.FC<AuthorizationPanelProps> = ({
     response,
     affiliateId,
     onCloseMessage,
-    selectedPharmacy
+    selectedPharmacy,
+    pypCode
 }) => {
     const [medications, setMedications] = useState<Medication[]>([]);
-    const [pypCode, setPypCode] = useState<number>(0);
     const [showTooltip, setShowTooltip] = useState(false);
 
     // Calculate total amount
@@ -44,10 +45,18 @@ export const AuthorizationPanel: React.FC<AuthorizationPanelProps> = ({
 
     const getPayloadPreview = () => {
         if (!selectedPharmacy) return null;
+
+        let codigoFarmacia = selectedPharmacy.code;
+        let codigoSucursal: string | null = null;
+
+        if (selectedPharmacy.type === 'SUCURSAL' && selectedPharmacy.principal_code) {
+            codigoFarmacia = selectedPharmacy.principal_code;
+            codigoSucursal = selectedPharmacy.code;
+        }
+
         return {
-            codigoFarmacia: selectedPharmacy.code,
-            codigoSucursal: null,
-            // medications: medications.map(m => ({ ...m })),
+            codigoFarmacia,
+            codigoSucursal,
             pypCode,
             numRef: Math.floor(Math.random() * 1000000)
         };
@@ -153,18 +162,18 @@ export const AuthorizationPanel: React.FC<AuthorizationPanelProps> = ({
                         {/* Validate Button Area */}
                         <div className="px-5 py-4 bg-gradient-to-r from-gray-50 to-white border-t border-gray-100 flex items-center justify-between relative rounded-b-xl">
 
-                            {/* PyP Code Input */}
+                            {/* PyP Code Display (Read Only) */}
                             <div className="flex items-center gap-3">
-                                <label htmlFor="pypCode" className="text-sm font-medium text-gray-600">Código PyP:</label>
-                                <input
-                                    id="pypCode"
-                                    type="number"
-                                    min="0"
-                                    value={pypCode}
-                                    onChange={(e) => setPypCode(Number(e.target.value) || 0)}
-                                    className="w-20 px-3 py-1.5 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-shadow bg-white text-gray-800 font-mono text-center shadow-sm"
-                                    title="Código del Programa de Promoción y Prevención (Por defecto 0)"
-                                />
+                                {pypCode > 0 ? (
+                                    <div className="flex items-center gap-2 bg-blue-50 px-3 py-1.5 rounded-lg border border-blue-100 text-blue-700">
+                                        <span className="text-xs font-semibold uppercase tracking-wider">Programa PyP:</span>
+                                        <span className="font-mono font-bold">{pypCode}</span>
+                                    </div>
+                                ) : (
+                                    <div className="flex items-center gap-2 bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-200 text-gray-500 opacity-70">
+                                        <span className="text-xs font-medium uppercase tracking-wider">Sin PyP</span>
+                                    </div>
+                                )}
                             </div>
 
                             <div className="flex items-center relative">
@@ -254,7 +263,7 @@ export const AuthorizationPanel: React.FC<AuthorizationPanelProps> = ({
                                     onMouseLeave={() => setShowTooltip(false)}
                                 >
                                     <Button
-                                        onClick={() => onValidate(medications, selectedPharmacy, pypCode)}
+                                        onClick={() => onValidate(medications, selectedPharmacy)}
                                         isLoading={isLoading}
                                         disabled={medications.length === 0}
                                         icon={<ShieldCheck size={18} />}

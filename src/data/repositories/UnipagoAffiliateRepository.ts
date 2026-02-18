@@ -14,14 +14,23 @@ export class UnipagoAffiliateRepository implements AffiliateRepository {
         this.baseUrl = baseUrl;
     }
 
-    async findByCedula(cedula: string): Promise<Affiliate | null> {
+    async findByDocument(documentNumber: string, documentType: number): Promise<Affiliate | null> {
         // We let errors bubble up to be handled by the use case/hook
         const token = await this.authRepo.authenticate();
+
+        // Use fetch directly or update HttpClient to support query params object strictly
+        // Assuming HttpClient handles the object or we append to URL. 
+        // Based on previous code, the second argument to get is body/params? 
+        // The FetchHttpClient implementation likely takes (url, headers?) or similar. 
+        // Let's look at FetchHttpClient usage in the original file. 
+        // Original: this.http.get(url, { TipoDocumento... }, { Authorization... })
+        // If the second arg is query params, then we just update the object.
+
         const response = await this.http.get<Affiliate>(
             `${this.baseUrl}/api/Afiliado/Consultar`,
             {
-                TipoDocumento: 1,
-                NoDocumento: cedula,
+                TipoDocumento: documentType,
+                NoDocumento: documentNumber,
             },
             {
                 Authorization: `Bearer ${token}`,
