@@ -56,6 +56,49 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 ]
             );
 
+            // Insert caller info if provided
+            if (authData.caller_name && authData.caller_document && authData.caller_phone) {
+                await db.query(
+                    `INSERT INTO lab_pbm_senasa.authorization_callers (
+                        authorization_code,
+                        caller_name,
+                        caller_document,
+                        caller_phone
+                    ) VALUES ($1, $2, $3, $4)`,
+                    [
+                        authData.authorization_code,
+                        authData.caller_name,
+                        authData.caller_document,
+                        authData.caller_phone
+                    ]
+                );
+            }
+
+            // Insert prescription info if provided
+            if (authData.prescription) {
+                const { prescriber_name, prescription_date, diagnosis, is_chronic, file_path, prescription_type } = authData.prescription;
+                await db.query(
+                    `INSERT INTO lab_pbm_senasa.prescriptions (
+                        authorization_code,
+                        prescriber_name,
+                        prescription_date,
+                        diagnosis,
+                        is_chronic,
+                        file_path,
+                        prescription_type
+                    ) VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+                    [
+                        authData.authorization_code,
+                        prescriber_name,
+                        prescription_date,
+                        diagnosis,
+                        is_chronic || false,
+                        file_path || null,
+                        prescription_type || 'NORMAL'
+                    ]
+                );
+            }
+
             return res.status(201).json({ message: 'Authorization saved successfully' });
         } catch (error) {
             console.error('Error saving authorization:', error);
