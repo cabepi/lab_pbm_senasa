@@ -101,9 +101,6 @@ function parseMultipart(body: Buffer, boundary: string): Part[] {
         const filenameMatch = headerSection.match(/filename="([^"]+)"/);
         const contentTypeMatch = headerSection.match(/Content-Type:\s*(.+)/i);
 
-        // Skip leading \r\n
-        const cleanedStart = partData[0] === 0x0d && partData[1] === 0x0a ? 2 : 0;
-
         parts.push({
             name: nameMatch?.[1],
             filename: filenameMatch?.[1],
