@@ -151,7 +151,8 @@ export const HomePage: React.FC = () => {
                 prescription_date: fecha,
                 diagnosis: diagnostico,
                 is_chronic: usoContinuo,
-                file_path: selectedFile?.name
+                file_path: selectedFile?.name,
+                file_object: selectedFile
             }
         );
     };

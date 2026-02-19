@@ -146,6 +146,7 @@ export const useAuthorization = () => {
             diagnosis: string;
             is_chronic: boolean;
             file_path?: string;
+            file_object?: File | null; // Added file object
             prescription_type?: 'NORMAL' | 'PYP' | 'EMERGENCY';
         }
     ) => {
@@ -199,6 +200,33 @@ export const useAuthorization = () => {
             // Save successful authorization to local DB
             if (result.ErrorNumber === 1000 && result.detalle && affiliateData) {
                 try {
+                    let blobUrl = prescriptionData?.file_path;
+
+                    // Handle File Upload if present
+                    if (prescriptionData?.file_object) {
+                        try {
+                            const formData = new FormData();
+                            formData.append('file', prescriptionData.file_object);
+                            formData.append('authorization_code', String(result.detalle.CodigoAutorizacion));
+
+                            const uploadResponse = await fetch('/api/upload-prescription', {
+                                method: 'POST',
+                                body: formData
+                            });
+
+                            if (uploadResponse.ok) {
+                                const uploadResult = await uploadResponse.json();
+                                blobUrl = uploadResult.url;
+                                console.log('[Frontend] File uploaded successfully:', blobUrl);
+                            } else {
+                                console.error('[Frontend] File upload failed:', await uploadResponse.text());
+                            }
+                        } catch (uploadError) {
+                            console.error('[Frontend] Error uploading file:', uploadError);
+                            // Proceed without blob URL (fall back to filename if already set or null)
+                        }
+                    }
+
                     await authRepository.save({
                         authorization_code: String(result.detalle.CodigoAutorizacion),
                         transaction_id: transactionId,
@@ -215,7 +243,10 @@ export const useAuthorization = () => {
                         caller_name: callerInfo?.name,
                         caller_document: callerInfo?.documentId,
                         caller_phone: callerInfo?.phone,
-                        prescription: prescriptionData
+                        prescription: {
+                            ...prescriptionData!,
+                            file_path: blobUrl // Use the new blob URL
+                        }
                     });
                 } catch (saveError) {
                     console.error("Error saving authorization record:", saveError);

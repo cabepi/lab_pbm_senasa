@@ -5,6 +5,8 @@ import { PostgresDatabaseClient } from '../data/infrastructure/PostgresDatabaseC
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import dotenv from 'dotenv';
+import { put } from '@vercel/blob';
+import multer from 'multer';
 
 dotenv.config();
 
@@ -142,6 +144,36 @@ app.get('/api/pharmacies/search', async (req, res) => {
     } catch (error) {
         console.error('Pharmacy search error:', error);
         res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
+// Multer setup for in-memory file handling
+const upload = multer({ storage: multer.memoryStorage() });
+
+app.post('/api/upload-prescription', upload.single('file'), async (req, res) => {
+    const { authorization_code } = req.body;
+    const file = req.file;
+
+    if (!file || !authorization_code) {
+        return res.status(400).json({ error: 'File and authorization_code are required' });
+    }
+
+    try {
+        console.log(`[Upload] Uploading file ${file.originalname} for auth ${authorization_code}`);
+
+        const filename = file.originalname;
+        const blobPath = `medical_prescriptions/${authorization_code}/${filename}`;
+
+        const blob = await put(blobPath, file.buffer, {
+            access: 'public',
+            token: process.env.BLOB_READ_WRITE_TOKEN,
+        });
+
+        console.log(`[Upload] Success: ${blob.url}`);
+        res.json({ url: blob.url });
+    } catch (error: any) {
+        console.error('[Upload Error]', error);
+        res.status(500).json({ error: 'Failed to upload file', details: error.message });
     }
 });
 
