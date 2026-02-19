@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { getDb } from '../_lib/db.js';
+import { searchPharmacies } from '../_lib/services/pharmacyService.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (req.method !== 'GET') {
@@ -14,19 +15,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     try {
         const db = getDb();
-        const searchTerm = `%${q}%`;
-        const result = await db.query(
-            `SELECT code, name, principal_code, type 
-             FROM lab_pbm_senasa.pharmacies 
-             WHERE code::text ILIKE $1 
-                OR name ILIKE $1 
-                OR principal_code::text ILIKE $1 
-                OR type ILIKE $1
-             ORDER BY name
-             LIMIT 50`,
-            [searchTerm]
-        );
-        res.json(result.rows);
+        const rows = await searchPharmacies(db, q);
+        res.json(rows);
     } catch (error) {
         console.error('Pharmacy search error:', error);
         res.status(500).json({ error: 'Internal server error' });

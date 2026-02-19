@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { getDb } from '../_lib/db.js';
+import { searchMedications } from '../_lib/services/medicationService.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (req.method !== 'GET') {
@@ -14,24 +15,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     try {
         const db = getDb();
-        const searchTerm = String(q).trim();
-        const isNumeric = /^\d+$/.test(searchTerm);
-
-        let query = '';
-        let params: any[] = [];
-
-        if (isNumeric) {
-            // Exact or prefix match for code
-            query = `SELECT code, name, price FROM lab_pbm_senasa.medications WHERE code::text LIKE $1 LIMIT 50`;
-            params = [`${searchTerm}%`];
-        } else {
-            // Fuzzy match for name
-            query = `SELECT code, name, price FROM lab_pbm_senasa.medications WHERE name ILIKE $1 LIMIT 50`;
-            params = [`%${searchTerm}%`];
-        }
-
-        const result = await db.query(query, params);
-        res.json(result.rows);
+        const rows = await searchMedications(db, q);
+        res.json(rows);
     } catch (error) {
         console.error('Medication search error:', error);
         res.status(500).json({ error: 'Internal server error' });

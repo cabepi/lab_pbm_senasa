@@ -1,15 +1,14 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { getDb } from '../_lib/db.js';
+import { getAuthorizations, saveAuthorization } from '../_lib/services/authorizationService.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
     const db = getDb();
 
     if (req.method === 'GET') {
         try {
-            const result = await db.query(
-                `SELECT * FROM lab_pbm_senasa.authorizations ORDER BY created_at DESC LIMIT 100`
-            );
-            return res.json(result.rows);
+            const rows = await getAuthorizations(db);
+            return res.json(rows);
         } catch (error) {
             console.error('Error fetching authorizations:', error);
             return res.status(500).json({ error: 'Failed to fetch authorizations' });
@@ -24,80 +23,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 return res.status(400).json({ error: 'Missing required fields for authorization record' });
             }
 
-            await db.query(
-                `INSERT INTO lab_pbm_senasa.authorizations (
-                    authorization_code,
-                    transaction_id,
-                    pharmacy_code,
-                    pharmacy_name,
-                    affiliate_document,
-                    affiliate_name,
-                    total_amount,
-                    regulated_copay,
-                    authorized_amount,
-                    detail_json,
-                    authorizer_email,
-                    branch_code
-                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
-                ON CONFLICT (authorization_code) DO NOTHING`,
-                [
-                    authData.authorization_code,
-                    authData.transaction_id,
-                    authData.pharmacy_code,
-                    authData.pharmacy_name,
-                    authData.affiliate_document,
-                    authData.affiliate_name,
-                    authData.total_amount,
-                    authData.regulated_copay,
-                    authData.authorized_amount,
-                    authData.detail_json,
-                    authData.authorizer_email,
-                    authData.branch_code || null
-                ]
-            );
-
-            // Insert caller info if provided
-            if (authData.caller_name && authData.caller_document && authData.caller_phone) {
-                await db.query(
-                    `INSERT INTO lab_pbm_senasa.authorization_callers (
-                        authorization_code,
-                        caller_name,
-                        caller_document,
-                        caller_phone
-                    ) VALUES ($1, $2, $3, $4)`,
-                    [
-                        authData.authorization_code,
-                        authData.caller_name,
-                        authData.caller_document,
-                        authData.caller_phone
-                    ]
-                );
-            }
-
-            // Insert prescription info if provided
-            if (authData.prescription) {
-                const { prescriber_name, prescription_date, diagnosis, is_chronic, file_path, prescription_type } = authData.prescription;
-                await db.query(
-                    `INSERT INTO lab_pbm_senasa.prescriptions (
-                        authorization_code,
-                        prescriber_name,
-                        prescription_date,
-                        diagnosis,
-                        is_chronic,
-                        file_path,
-                        prescription_type
-                    ) VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-                    [
-                        authData.authorization_code,
-                        prescriber_name,
-                        prescription_date,
-                        diagnosis,
-                        is_chronic || false,
-                        file_path || null,
-                        prescription_type || 'NORMAL'
-                    ]
-                );
-            }
+            await saveAuthorization(db, authData);
 
             return res.status(201).json({ message: 'Authorization saved successfully' });
         } catch (error) {
